@@ -8,6 +8,7 @@
   "main": "src/index.js",
   "scripts": {
     "start": "nodemon --exec babel-node ./src/index.js",
+    "eval": "node --env-file=.env eval/run-eval.js",
     "test": "cross-env NODE_ENV=test jest --runInBand",
     "test:unit": "jest --config jest.unit.config.cjs --runInBand",
     "test:integration": "jest test/integration",
