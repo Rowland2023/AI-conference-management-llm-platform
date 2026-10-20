@@ -1,41 +1,75 @@
+
+import { randomUUID } from "node:crypto";
 import request from "supertest";
 import { createApp } from "../../src/app.js";
+import db from "../../src/cross-cutting/database/knex.js";
+import { createTestAuthHeaders } from "../helpers/auth.js";
 
 describe("Registration API Integration Tests", () => {
+    let application;
     let app;
-    let server;
+    let conferenceId;
 
     beforeAll(async () => {
-        const application = await createApp();
+        application = await createApp();
         app = application.app;
 
-        // If your createApp returns an HTTP server instance or if you need to 
-        // explicitly spin it up/down to prevent socket leaks:
-        if (application.server) {
-            server = application.server;
+        if (!app) {
+            throw new Error("createApp() did not return an Express app.");
         }
+
+        conferenceId = randomUUID();
+
+        await db("conferences").insert({
+            id: conferenceId,
+            title: "Registration API integration test",
+            registration_open: true,
+            ticket_tier_capacities: {},
+        });
     });
 
     afterAll(async () => {
-        // Explicitly close the server instance if it was started during bootstrap
-        if (server && typeof server.close === "function") {
-            await new Promise((resolve) => server.close(resolve));
-        }
+        try {
+            if (conferenceId) {
+                // Find registrations created for this test conference.
+                const registrations = await db("registrations")
+                    .where({ conference_id: conferenceId })
+                    .select("id");
 
-        // If your application has global database pools, Redis clients, or 
-        // message brokers, disconnect them here to prevent hanging processes:
-        // e.g., await db.destroy();
-        // e.g., await redisClient.quit();
+                const registrationIds = registrations.map(row => row.id);
+
+                // Remove outbox events belonging to these registrations.
+                if (registrationIds.length > 0) {
+                    await db("outbox_events")
+                        .whereIn("aggregate_id", registrationIds)
+                        .del();
+                }
+
+                // Remove only data associated with this test fixture.
+                await db("registrations")
+                    .where({ conference_id: conferenceId })
+                    .del();
+
+                await db("conferences")
+                    .where({ id: conferenceId })
+                    .del();
+            }
+        } finally {
+            await application?.stop?.();
+        }
     });
 
     test("POST /registrations creates a registration", async () => {
         const response = await request(app)
-            .post("/registrations")
+            .post("/api/v1/registrations")
+            .set(createTestAuthHeaders())
             .send({
-                conferenceId: "11111111-1111-1111-1111-111111111111",
-                attendeeId: "22222222-2222-2222-2222-222222222222",
-                ticketType: "STANDARD"
+                eventId: conferenceId,
+                ticketType: "standard",
             });
+
+        console.log("Registration status:", response.status);
+        console.log("Registration response body:", response.body);
 
         expect(response.status).toBe(201);
         expect(response.body).toBeDefined();

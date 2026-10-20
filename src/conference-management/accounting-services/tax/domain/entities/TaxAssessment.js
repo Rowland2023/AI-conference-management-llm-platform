@@ -4,10 +4,10 @@ import { randomUUID }
     from "crypto";
 
 import { AggregateRoot }
-    from "../../../shared/domain/AggregateRoot.js";
+    from "../../../../../shared/domain/AggregateRoot.js";
 
 import { TaxStatus }
-    from "../value_objects/TaxStatus.js";
+    from "../value-objects/TaxStatus.js";
 
 import { TaxCalculated }
     from "../events/TaxCalculated.js";

@@ -1,22 +1,30 @@
+
 import { ValidationError } from "../../application/errors/ApplicationErrors.js";
 
 /**
- * Validate HTTP request input against a schema.
+ * Validate HTTP request input against a Zod or Joi schema.
  *
- * @param {Object} schema Validation schema
- * @param {"body"|"query"|"params"} property Request property
+ * Supports wrapped schemas:
+ *   z.object({ body: z.object({ ... }) })
+ *
+ * And direct schemas:
+ *   z.object({ ... })
+ *
+ * @param {object} schema - Zod or Joi schema.
+ * @param {"body" | "query" | "params"} property - Request property to validate.
+ * @returns {import("express").RequestHandler}
  */
 export const validate = (schema, property = "body") => {
+    if (!isZodSchema(schema) && !isJoiSchema(schema)) {
+        throw new ValidationError("Unsupported validation schema");
+    }
+
     return (req, res, next) => {
         try {
-            const input = extractInput(req, property);
+            const input = req[property] ?? {};
+            const result = parseRequest(schema, property, input);
 
-            console.log("property:", property);
-            console.log("input:", input);
-            console.log("req.query:", req.query);
-
-            req[property] = parse(schema, input);
-
+            req[property] = result;
             next();
         } catch (error) {
             next(error);
@@ -24,92 +32,52 @@ export const validate = (schema, property = "body") => {
     };
 };
 
-function extractInput(req, property) {
-
-    return {
-        body: req.body,
-        query: req.query,
-        params: req.params
-    }[property] ?? {};
-}
-
-
-function parse(schema, input) {
-
+function parseRequest(schema, property, input) {
     if (isZodSchema(schema)) {
-        return parseZod(schema, input);
-    }
+        const wrapped = schema.shape &&
+            Object.hasOwn(schema.shape, property);
 
-    if (isJoiSchema(schema)) {
-        return parseJoi(schema, input);
-    }
-
-    throw new ValidationError(
-        "Unsupported validation schema"
-    );
-}
-
-
-function isZodSchema(schema) {
-    return typeof schema.safeParse === "function";
-}
-
-
-function isJoiSchema(schema) {
-    return typeof schema.validate === "function";
-}
-
-
-function parseZod(schema, input) {
-
-    const result = schema.safeParse(input);
-
-    if (!result.success) {
-        throw new ValidationError(
-            formatZodError(result.error)
+        const result = schema.safeParse(
+            wrapped ? { [property]: input } : input
         );
+
+        if (!result.success) {
+            throw new ValidationError(formatZodError(result.error));
+        }
+
+        return wrapped ? result.data[property] : result.data;
     }
-
-    return result.data;
-}
-
-
-function parseJoi(schema, input) {
 
     const result = schema.validate(input, {
         abortEarly: false,
-        stripUnknown: true
+        stripUnknown: true,
     });
 
     if (result.error) {
-        throw new ValidationError(
-            formatJoiError(result.error)
-        );
+        throw new ValidationError(formatJoiError(result.error));
     }
 
     return result.value;
 }
 
+function isZodSchema(schema) {
+    return typeof schema?.safeParse === "function";
+}
+
+function isJoiSchema(schema) {
+    return typeof schema?.validate === "function";
+}
 
 function formatZodError(error) {
-
-    const issues = error.issues ?? error.errors ?? [];
-
-    return issues
-        .map(issue => {
-            const field = issue.path.length
-                ? issue.path.join(".")
-                : "request";
-
-            return `${field}: ${issue.message}`;
-        })
+    return (error.issues ?? error.errors ?? [])
+        .map(({ path, message }) =>
+            `${path?.length ? path.join(".") : "request"}: ${message}`
+        )
         .join(", ");
 }
 
-
 function formatJoiError(error) {
-
-    return error.details
-        .map(detail => detail.message)
+    return (error.details ?? [])
+        .map(({ message }) => message)
         .join(", ");
 }

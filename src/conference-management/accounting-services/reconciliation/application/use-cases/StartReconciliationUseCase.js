@@ -1,7 +1,7 @@
 // reconciliation/application/use_cases/StartReconciliationUseCase.js
 
 import { Reconciliation } from "../../domain/entities/Reconciliation.js";
-import { ReconciliationStarted } from "../../domain/events/ReconciliationStarted.js";
+import { ReconciliationStarted } from "../../domain/events/reconciliation_started.js";
 import { ReconciliationResponse } from "../dto/ReconciliationResponse.js";
 
 export class StartReconciliationUseCase {

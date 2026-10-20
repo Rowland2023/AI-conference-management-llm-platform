@@ -1,56 +1,102 @@
-import { NotFoundError, UnauthorizedError, BusinessRuleValidationError } from '../../../../shared/domain/error/DomainErrors.js';
+
+import {
+  NotFoundError,
+  UnauthorizedError,
+  BusinessRuleValidationError,
+} from "../../../../shared/domain/error/DomainErrors.js";
 
 export class CheckInRegistrationUseCase {
-  constructor({ registrationRepository, conferenceRepository, outboxRepository, transactionManager }) {
-    this.registrationRepository = registrationRepository;
-    this.conferenceRepository = conferenceRepository;
-    this.outboxRepository = outboxRepository;
-    this.transactionManager = transactionManager;
+  constructor({
+    registrationRepository,
+    conferenceRepository,
+    outboxRepository,
+    transactionManager,
+  }) {
+    Object.assign(this, {
+      registrationRepository,
+      conferenceRepository,
+      outboxRepository,
+      transactionManager,
+    });
   }
 
-  async execute({ registrationId, currentUser }) {
+  async execute(input = {}, currentUser, tracingContext = {}) {
+    const registrationId = input.registrationId ?? input.id;
+
     if (!registrationId) {
-      throw new NotFoundError("Registration identifier is required.");
+      throw new NotFoundError("Registration id is required.");
+    }
+    if (!currentUser) {
+      throw new UnauthorizedError("Authentication is required.");
     }
 
-    if (!currentUser.isAdmin() && !currentUser.isOrganizer()) {
-      throw new UnauthorizedError("Only organizers or administrators can check in attendees.");
-    }
+    return this.transactionManager.runInTransaction(async tx => {
+      const registration =
+        await this.registrationRepository.findByIdForUpdate(
+          registrationId,
+          tx
+        );
 
-    return await this.transactionManager.runInTransaction(async (tx) => {
-      const registration = await this.registrationRepository.findByIdForUpdate(registrationId, tx);
       if (!registration) {
         throw new NotFoundError("Registration not found.");
       }
 
-      // Multi-tenant guard
-      if (currentUser.isOrganizer()) {
-        const isOwner = await this.conferenceRepository.isOrganizerOf(
-          registration.conferenceId, 
-          currentUser.id, 
+      const isAdmin =
+        typeof currentUser.isAdmin === "function" &&
+        currentUser.isAdmin();
+
+      const isOrganizer =
+        typeof currentUser.isOrganizer === "function" &&
+        currentUser.isOrganizer();
+
+      if (!isAdmin && !isOrganizer) {
+        throw new UnauthorizedError(
+          "Only organizers or administrators can check in attendees."
+        );
+      }
+
+      if (
+        isOrganizer &&
+        !isAdmin &&
+        !(await this.conferenceRepository.isOrganizerOf(
+          registration.conferenceId,
+          currentUser.id,
+          tx
+        ))
+      ) {
+        throw new NotFoundError("Registration not found.");
+      }
+
+      const conference =
+        await this.conferenceRepository.findById(
+          registration.conferenceId,
           tx
         );
-        if (!isOwner) {
-          throw new UnauthorizedError("You do not have permission to manage this event's roster.");
-        }
+
+      if (!conference) {
+        throw new NotFoundError("Conference not found.");
       }
 
-      // Temporal guard
-      const conference = await this.conferenceRepository.findById(registration.conferenceId, tx);
-      if (!conference.isCheckInWindowOpen()) {
+      if (!this.conferenceRepository.assertCheckInOpen(conference)) {
         throw new BusinessRuleValidationError(
-          `Check-in is only available from ${conference.checkInOpensAt} to ${conference.checkInClosesAt}`
+          "Check-in is not open for this conference."
         );
       }
 
-      // Idempotent domain mutation
-      const wasAlreadyCheckedIn = registration.isCheckedIn();
-      registration.checkIn({ conference, checkedInBy: currentUser.id });
+      if (registration.isCheckedIn()) {
+        return registration;
+      }
 
-      await this.registrationRepository.update(registration, tx);
-      await this.outboxRepository.saveMany(registration.pullDomainEvents(), tx);
+      registration.checkIn();
 
-      return registration; // Return entity, not HTTP payload
+      await this.registrationRepository.save(registration, tx);
+
+      const events = registration.pullDomainEvents();
+      if (events.length) {
+        await this.outboxRepository.save(events, tx);
+      }
+
+      return registration;
     });
   }
 }

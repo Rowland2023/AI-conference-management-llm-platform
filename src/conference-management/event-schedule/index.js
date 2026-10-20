@@ -1,9 +1,12 @@
+
 // src/conference-management/event-schedule/index.js
 // Composition Root for Event Schedule sub-module inside Conference Management
 
 import { KnexEventRepository } from "./infrastructure/repositories/PostgresEventRepository.js";
 import { PostgresOutboxRepository } from "../../shared/infrastructure/messaging/outbox/PostgresOutboxRepository.js";
-import { OutboxWorker as OutboxPublisherWorker } from "../../shared/infrastructure/messaging/outbox/OutboxWorker.js";
+import {
+    OutboxWorker as OutboxPublisherWorker,
+} from "../../shared/infrastructure/messaging/outbox/OutboxWorker.js";
 
 // Domain Service
 import { EventSchedulingService } from "./domain/service/Eventscheduling.service.js";
@@ -24,179 +27,183 @@ export function createConferenceEventScheduleSubModule({
     unitOfWorkFactory,
     eventBus,
     logger,
+    authenticateMiddleware,
 }) {
+    // ---------------------------------------------------------
+    // Fail-fast dependency validation
+    // ---------------------------------------------------------
 
-    //----------------------------------------------------------
-    // Fail Fast Dependency Validation
-    //----------------------------------------------------------
+    if (!db) {
+        throw new Error(
+            "ConferenceEventScheduleSubModule: 'db' is required.",
+        );
+    }
 
-    if (!db)
-        throw new Error("ConferenceEventScheduleSubModule: 'db' is required.");
+    if (!unitOfWorkFactory) {
+        throw new Error(
+            "ConferenceEventScheduleSubModule: 'unitOfWorkFactory' is required.",
+        );
+    }
 
-    if (!unitOfWorkFactory)
-        throw new Error("ConferenceEventScheduleSubModule: 'unitOfWorkFactory' is required.");
+    if (!eventBus) {
+        throw new Error(
+            "ConferenceEventScheduleSubModule: 'eventBus' is required.",
+        );
+    }
 
-    if (!eventBus)
-        throw new Error("ConferenceEventScheduleSubModule: 'eventBus' is required.");
+    if (!logger) {
+        throw new Error(
+            "ConferenceEventScheduleSubModule: 'logger' is required.",
+        );
+    }
 
-    if (!logger)
-        throw new Error("ConferenceEventScheduleSubModule: 'logger' is required.");
+    if (typeof authenticateMiddleware !== "function") {
+        throw new TypeError(
+            "ConferenceEventScheduleSubModule: 'authenticateMiddleware' must be a function.",
+        );
+    }
 
-    //----------------------------------------------------------
-    // Transaction Scope
-    //----------------------------------------------------------
+    // ---------------------------------------------------------
+    // Transaction scope
+    // ---------------------------------------------------------
 
     const uow = unitOfWorkFactory();
 
-    //----------------------------------------------------------
+    // ---------------------------------------------------------
     // Repositories
-    //----------------------------------------------------------
+    // ---------------------------------------------------------
 
     const eventRepository = new KnexEventRepository({
-    db,
-});
+        db,
+    });
 
-    const outboxRepository =
-        new PostgresOutboxRepository({
-            db,
-        });
+    const outboxRepository = new PostgresOutboxRepository({
+        db,
+    });
 
-    //----------------------------------------------------------
-    // Domain Services
-    //----------------------------------------------------------
+    // ---------------------------------------------------------
+    // Domain services
+    // ---------------------------------------------------------
 
-    const eventSchedulingService =
-        new EventSchedulingService({
-            eventRepository,
-        });
+    const eventSchedulingService = new EventSchedulingService({
+        eventRepository,
+    });
 
-    //----------------------------------------------------------
-    // Application Services
-    //----------------------------------------------------------
+    // ---------------------------------------------------------
+    // Application use cases
+    // ---------------------------------------------------------
 
-    const createEventUseCase =
-        new CreateEventUseCase({
-            eventRepository,
-            outboxRepository,
-            eventSchedulingService,
-            uow,
-            logger,
-        });
+    const createEventUseCase = new CreateEventUseCase({
+        eventRepository,
+        outboxRepository,
+        eventSchedulingService,
+        uow,
+        logger,
+    });
 
-    const rescheduleEventUseCase =
-        new RescheduleEventUseCase({
-            eventRepository,
-            outboxRepository,
-            eventSchedulingService,
-            uow,
-            logger,
-        });
+    const rescheduleEventUseCase = new RescheduleEventUseCase({
+        eventRepository,
+        outboxRepository,
+        eventSchedulingService,
+        uow,
+        logger,
+    });
 
-    const cancelEventUseCase =
-        new CancelEventUseCase({
-            eventRepository,
-            outboxRepository,
-            eventSchedulingService,
-            uow,
-            logger,
-        });
+    const cancelEventUseCase = new CancelEventUseCase({
+        eventRepository,
+        outboxRepository,
+        eventSchedulingService,
+        uow,
+        logger,
+    });
 
-    const getEventUseCase =
-        new GetEventUseCase({
-            eventRepository,
-            logger,
-        });
+    const getEventUseCase = new GetEventUseCase({
+        eventRepository,
+        logger,
+    });
 
-    const listEventsUseCase =
-        new ListEventsUseCase({
-            eventRepository,
-            logger,
-        });
+    const listEventsUseCase = new ListEventsUseCase({
+        eventRepository,
+        logger,
+    });
 
-    //----------------------------------------------------------
-    // Outbox Worker
-    //----------------------------------------------------------
+    // ---------------------------------------------------------
+    // Outbox worker
+    // ---------------------------------------------------------
 
-    const outboxWorker =
-        new OutboxPublisherWorker({
-            outboxRepository,
-            eventBus,
-            logger,
-        });
+    const outboxWorker = new OutboxPublisherWorker({
+        outboxRepository,
+        eventBus,
+        logger,
+    });
 
-    //----------------------------------------------------------
-    // Presentation
-    //----------------------------------------------------------
+    // ---------------------------------------------------------
+    // Presentation layer
+    // ---------------------------------------------------------
 
-    const eventController =
-        new EventController({
-            createEventUseCase,
-            rescheduleEventUseCase,
-            cancelEventUseCase,
-            getEventUseCase,
-            listEventsUseCase,
-            logger,
-        });
+    const eventController = new EventController({
+        createEventUseCase,
+        rescheduleEventUseCase,
+        cancelEventUseCase,
+        getEventUseCase,
+        listEventsUseCase,
+        logger,
+    });
 
-    const eventRouter =
-        createEventRouter({
-            eventController,
-        });
+    const eventRouter = createEventRouter({
+        eventController,
+        authenticateMiddleware,
+    });
 
-    //----------------------------------------------------------
-    // Integration
-    //----------------------------------------------------------
+    // ---------------------------------------------------------
+    // Integration and module lifecycle
+    // ---------------------------------------------------------
 
     let subscriptionToken = null;
 
     return {
+        // Standard module interface used by bootstrapRoutes()
+        name: "event-schedule",
+        basePath: "/api/v1/events",
+        router: eventRouter,
 
+        // Compatibility for existing eventRouter consumers
         eventRouter,
 
         subscribe() {
-
-            subscriptionToken =
-                eventBus.subscribe(
-                    "booking.payment_confirmed",
-                    async (evt) => {
-                        try {
-
-                            await createEventUseCase.execute({
-                                bookingId: evt.payload.bookingId,
-                                slotId: evt.payload.slotId,
-                                correlationId: evt.correlationId,
-                            });
-
-                        } catch (err) {
-
-                            logger.error(
-                                {
-                                    err,
-                                    eventId: evt.id,
-                                },
-                                "Failed to process booking.payment_confirmed event."
-                            );
-
-                        }
+            subscriptionToken = eventBus.subscribe(
+                "booking.payment_confirmed",
+                async (evt) => {
+                    try {
+                        await createEventUseCase.execute({
+                            bookingId: evt.payload.bookingId,
+                            slotId: evt.payload.slotId,
+                            correlationId: evt.correlationId,
+                        });
+                    } catch (err) {
+                        logger.error(
+                            {
+                                err,
+                                eventId: evt.id,
+                            },
+                            "Failed to process booking.payment_confirmed event.",
+                        );
                     }
-                );
-
+                },
+            );
         },
 
         async start() {
-
             logger.info(
-                "Starting Conference Event Schedule Outbox Worker..."
+                "Starting Conference Event Schedule Outbox Worker...",
             );
 
             await outboxWorker.start();
-
         },
 
         async stop() {
-
             logger.info(
-                "Stopping Conference Event Schedule Outbox Worker..."
+                "Stopping Conference Event Schedule Outbox Worker...",
             );
 
             if (
@@ -205,14 +212,13 @@ export function createConferenceEventScheduleSubModule({
             ) {
                 eventBus.unsubscribe(
                     "booking.payment_confirmed",
-                    subscriptionToken
+                    subscriptionToken,
                 );
+
+                subscriptionToken = null;
             }
 
             await outboxWorker.stop();
-
         },
-
     };
-
 }

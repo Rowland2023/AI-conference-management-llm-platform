@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">16.27% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/43</span>
+                <span class='fraction'>7/43</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">12.5% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/16</span>
+                <span class='fraction'>2/16</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">10% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/10</span>
+                <span class='fraction'>1/10</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">16.27% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/43</span>
+                <span class='fraction'>7/43</span>
             </div>
         
             
@@ -276,24 +276,20 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -307,9 +303,13 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -468,26 +468,26 @@ import {
 &nbsp;
 export class KafkaProducer {
 &nbsp;
-<span class="fstat-no" title="function not covered" >    co</span>nstructor({
+    constructor({
         kafka,
         logger = <span class="branch-0 cbranch-no" title="branch not covered" >console,</span>
-        config = <span class="branch-0 cbranch-no" title="branch not covered" >{},</span>
+        config = {},
     }) {
 &nbsp;
-<span class="cstat-no" title="statement not covered" >        if (!kafka) {</span>
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (!kafka) {
 <span class="cstat-no" title="statement not covered" >            throw new Error(</span>
                 "KafkaProducer requires Kafka instance."
             );
         }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >        this.logger = logger;</span>
+        this.logger = logger;
 &nbsp;
-<span class="cstat-no" title="statement not covered" >        this.kafka = kafka;</span>
+        this.kafka = kafka;
 &nbsp;
-<span class="cstat-no" title="statement not covered" >        this.instrumentationEmitter =</span>
+        this.instrumentationEmitter =
             kafka.instrumentationEmitter;
 &nbsp;
-<span class="cstat-no" title="statement not covered" >        this.producer =</span>
+        this.producer =
             kafka.producer({
 &nbsp;
                 allowAutoTopicCreation: false,
@@ -505,9 +505,9 @@ export class KafkaProducer {
 &nbsp;
             });
 &nbsp;
-<span class="cstat-no" title="statement not covered" >        this.connected = false;</span>
+        this.connected = false;
 &nbsp;
-<span class="cstat-no" title="statement not covered" >        this.reconnecting = false;</span>
+        this.reconnecting = false;
 &nbsp;
     }
 &nbsp;
@@ -664,7 +664,7 @@ export class KafkaProducer {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-08-14T22:48:18.627Z
+                at 2026-10-20T09:58:03.016Z
             </div>
         <script src="../../../../../prettify.js"></script>
         <script>

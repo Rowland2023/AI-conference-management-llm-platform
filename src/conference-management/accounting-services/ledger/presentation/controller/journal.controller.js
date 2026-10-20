@@ -1,111 +1,137 @@
 /**
- * @file src/presentation/controllers/journal.controller.js
+ * @file src/conference-management/accounting-services/ledger/presentation/controller/journal.controller.js
  *
  * Journal Entry HTTP Controller.
  *
- * Thin HTTP adapter.
- * Delegates all application operations to LedgerService.
+ * Thin HTTP adapter that delegates journal operations to LedgerService.
+ * Enforces tenant context at the HTTP boundary.
  */
 
-
-
 export default class JournalController {
+    constructor({ ledgerService }) {
+        if (!ledgerService) {
+            throw new TypeError("ledgerService is required.");
+        }
 
-  constructor({
-    ledgerService,
-  }) {
-    this.ledgerService = ledgerService;
-  }
-
-
-  /**
-   * POST /journal-entries
-   */
-  postEntry = async (req, res, next) => {
-    try {
-
-      const {
-        actor,
-        body = {},
-      } = req;
-
-
-      const idempotencyKey =
-        req.headers["idempotency-key"] ||
-        body.idempotencyKey;
-
-
-      const entry =
-        await this.ledgerService.postJournalEntry({
-
-          ...body,
-
-          tenantId: actor.tenantId,
-
-          actor,
-
-          idempotencyKey,
-
-          correlationId: req.correlationId,
-
-        });
-
-
-      return res.status(201).json(entry);
-
-
-    } catch (err) {
-
-      next(err);
-
+        this.ledgerService = ledgerService;
     }
-  };
 
+    /**
+     * POST /journals
+     * Creates a journal entry.
+     */
+    postEntry = async (req, res, next) => {
+        try {
+            const tenantId = this.#getTenantId(req);
 
+            if (!tenantId) {
+                return res.status(401).json({
+                    message: "Authenticated tenant context is required.",
+                });
+            }
 
-  /**
-   * POST /journal-entries/:id/reverse
-   */
-  reverseEntry = async (req, res, next) => {
-    try {
+            const body = req.body ?? {};
 
-      const {
-        actor,
-        body = {},
-      } = req;
+            const entry = await this.ledgerService.postJournalEntry({
+                ...body,
+                tenantId,
+                actor: req.actor,
+                idempotencyKey: this.#getIdempotencyKey(req, body),
+                correlationId: req.correlationId,
+            });
 
+            return res.status(201).json(entry);
+        } catch (error) {
+            return next(error);
+        }
+    };
 
-      const idempotencyKey =
-        req.headers["idempotency-key"] ||
-        body.idempotencyKey;
+    /**
+     * POST /journals/:id/reverse
+     * Reverses an existing journal entry.
+     */
+    reverseEntry = async (req, res, next) => {
+        try {
+            const tenantId = this.#getTenantId(req);
 
+            if (!tenantId) {
+                return res.status(401).json({
+                    message: "Authenticated tenant context is required.",
+                });
+            }
 
-      const entry =
-        await this.ledgerService.reverseJournalEntry({
+            const body = req.body ?? {};
 
-          id: req.params.id,
+            const entry = await this.ledgerService.reverseJournalEntry({
+                id: req.params.id,
+                tenantId,
+                actor: req.actor,
+                reason: body.reason,
+                idempotencyKey: this.#getIdempotencyKey(req, body),
+                correlationId: req.correlationId,
+            });
 
-          tenantId: actor.tenantId,
+            return res.status(200).json(entry);
+        } catch (error) {
+            return next(error);
+        }
+    };
 
-          actor,
+    /**
+     * GET /journals/:id
+     * Retrieves a journal entry within the authenticated tenant.
+     */
+    getEntry = async (req, res, next) => {
+        try {
+            const tenantId = this.#getTenantId(req);
 
-          reason: body.reason,
+            if (!tenantId) {
+                return res.status(401).json({
+                    message: "Authenticated tenant context is required.",
+                });
+            }
 
-          idempotencyKey,
+            const entry = await this.ledgerService.getJournalEntry({
+                id: req.params.id,
+                tenantId,
+            });
 
-          correlationId: req.correlationId,
+            if (!entry) {
+                return res.status(404).json({
+                    message: "Journal entry not found.",
+                });
+            }
 
-        });
+            return res.status(200).json(entry);
+        } catch (error) {
+            return next(error);
+        }
+    };
 
+    /**
+     * Reads the tenant ID established by authentication middleware.
+     */
+    #getTenantId(req) {
+        const tenantId = req.actor?.tenantId;
 
-      return res.status(200).json(entry);
+        if (
+            tenantId == null ||
+            String(tenantId).trim() === ""
+        ) {
+            return null;
+        }
 
-
-    } catch(err) {
-
-      next(err);
-
+        return tenantId;
     }
-  };
 
+    /**
+     * Supports the Idempotency-Key header, with a body fallback.
+     */
+    #getIdempotencyKey(req, body = {}) {
+        const headerValue = req.get
+            ? req.get("Idempotency-Key")
+            : req.headers?.["idempotency-key"];
+
+        return headerValue || body.idempotencyKey;
+    }
 }

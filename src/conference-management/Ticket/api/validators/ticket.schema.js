@@ -1,113 +1,52 @@
-// src/conference-management/ticket/api/validators/ticket.schema.js
 
 import Joi from "joi";
 
-/**
- * Shared validators
- */
-const ticketId = Joi.string()
-    .uuid()
-    .required();
+const uuid = Joi.string().uuid();
 
-const seatNumber = Joi.string()
+const quantity = Joi.number()
+  .integer()
+  .positive()
+  .max(10000)
+  .required();
+
+export const createTicketSchema = Joi.object({
+  conferenceId: uuid.required(),
+  type: Joi.string().trim().min(1).max(100).required(),
+  price: Joi.number().min(0).required(),
+  currency: Joi.string()
     .trim()
-    .max(50);
+    .length(3)
+    .uppercase()
+    .required(),
+  capacity: Joi.number()
+    .integer()
+    .positive()
+    .max(10000000)
+    .required(),
+}).required();
 
-const reservationId = Joi.string()
-    .uuid();
-
-/**
- * Ticket fields
- */
-const ticketFields = {
-    conferenceId: Joi.string()
-        .uuid()
-        .required(),
-
-    attendeeId: Joi.string()
-        .uuid()
-        .required(),
-
-    ticketTypeId: Joi.string()
-        .uuid()
-        .required(),
-
-    seatNumber,
-
-    price: Joi.number()
-        .min(0)
-        .required(),
-
-    currency: Joi.string()
-        .length(3)
-        .uppercase()
-        .required(),
-};
-
-/**
- * Create Ticket
- */
-export const createTicketSchema = Joi.object(ticketFields);
-
-/**
- * Ticket identifier
- */
 export const ticketIdSchema = Joi.object({
-    id: ticketId,
-});
+  id: uuid.required(),
+}).required();
 
-/**
- * Ticket listing
- */
 export const ticketQuerySchema = Joi.object({
-    page: Joi.number()
-        .integer()
-        .min(1)
-        .default(1),
+  page: Joi.number().integer().min(1).default(1),
+  limit: Joi.number().integer().min(1).max(100).default(20),
+  conferenceId: uuid.optional(),
+  type: Joi.string().trim().max(100).optional(),
+  status: Joi.string()
+    .valid("ACTIVE", "CANCELLED")
+    .optional(),
+}).required();
 
-    limit: Joi.number()
-        .integer()
-        .min(1)
-        .max(100)
-        .default(20),
-
-    conferenceId: Joi.string()
-        .uuid()
-        .optional(),
-
-    attendeeId: Joi.string()
-        .uuid()
-        .optional(),
-
-    status: Joi.string()
-        .valid(
-            "AVAILABLE",
-            "RESERVED",
-            "SOLD",
-            "CANCELLED"
-        )
-        .optional(),
-});
-
-/**
- * Reserve Ticket
- */
 export const reserveTicketSchema = Joi.object({
-    reservationId: reservationId.required(),
-});
+  quantity,
+}).required();
 
-/**
- * Release Ticket
- */
 export const releaseTicketSchema = Joi.object({
-    reservationId,
-});
+  quantity,
+}).required();
 
-/**
- * Cancel Ticket
- */
 export const cancelTicketSchema = Joi.object({
-    reason: Joi.string()
-        .max(500)
-        .optional(),
-});
+  reason: Joi.string().trim().min(1).max(500).required(),
+}).required();

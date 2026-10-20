@@ -2,11 +2,12 @@
 
 import { Router } from "express";
 
-import RefundRepository from "./infrastructure/repositories/RefundRepository.js";
+import { RefundRepository }
+    from "./infrastructure/repositories/RefundRepository.js";
 
 import {
     PaystackGatewayAdapter,
-} from "./infrastructure/adapters/PaymentGatewayAdapter.js";
+} from "./infrastructure/repositories/adapters/PaymentGatewayAdapter.js";
 
 
 import ProcessRefundUseCase from "./application/ProcessRefundUseCase.js";

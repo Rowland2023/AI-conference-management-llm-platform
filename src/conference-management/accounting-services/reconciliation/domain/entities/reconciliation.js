@@ -2,7 +2,7 @@
 
 import { randomUUID } from "crypto";
 
-import { ReconciliationStatus } from "../value-objects/ReconciliationStatus.js";
+import { ReconciliationStatus } from "../value-objects/reconciliation_status.js";
 
 export class Reconciliation {
 

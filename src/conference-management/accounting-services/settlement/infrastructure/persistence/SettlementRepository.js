@@ -1,7 +1,7 @@
 // settlement/infrastructure/persistence/SettlementRepository.js
 
 import { SettlementRepository as SettlementRepositoryPort }
-    from "../../domain/repositories/SettlementRepository.js";
+    from "../../domain/repositories/settlement_repository.js";
 
 import { SettlementMapper }
     from "./SettlementMapper.js";

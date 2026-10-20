@@ -1,0 +1,316 @@
+
+> conference-management@1.0.0 test
+> cross-env NODE_ENV=test jest --runInBand --runTestsByPath test/api/health.test.js test/api/ticket.test.js test/api/registration.test.js test/api/payment.test.js --runInBand --coverage=false
+
+
+--------------------------------
+Starting Test Suite
+--------------------------------
+FAIL test/api/payment.test.js
+  ● Payment API › POST /api/accounting/payments creates a payment
+
+    ReferenceError: CancelInvoiceUseCase is not defined
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mconst[39m cancelInvoiceUseCase [33m=[39m
+    [31m[1m>[22m[39m[90m 116 |[39m         [36mnew[39m [33mCancelInvoiceUseCase[39m({
+     [90m     |[39m         [31m[1m^[22m[39m
+     [90m 117 |[39m
+     [90m 118 |[39m             invoiceRepository[33m,[39m
+     [90m 119 |[39m[0m
+
+      at createInvoiceModule (src/conference-management/accounting-services/invoice/index.js:116:9)
+      at createAccountingServicesModule (src/conference-management/accounting-services/index.js:160:46)
+      at boostrapModules (src/boostrap/modules.js:30:39)
+      at src/app.js:73:30
+      at Generator.call (src/app.js:2:1)
+      at Generator._invoke [as next] (src/app.js:2:1)
+      at asyncGeneratorStep (src/app.js:2:1)
+      at asyncGeneratorStep (src/app.js:2:1)
+      at _next (src/app.js:2:1)
+      at src/app.js:2:1
+      at apply (src/app.js:100:2)
+      at apply (src/app.js:17:32)
+      at test/api/payment.test.js:9:39
+      at Generator.call (test/api/payment.test.js:2:1)
+      at Generator._invoke [as next] (test/api/payment.test.js:2:1)
+      at asyncGeneratorStep (test/api/payment.test.js:2:1)
+      at asyncGeneratorStep (test/api/payment.test.js:2:1)
+      at _next (test/api/payment.test.js:2:1)
+      at Object.<anonymous> (test/api/payment.test.js:2:1)
+
+{"level":30,"time":1792172241741,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Authentication module initialized"}
+{"level":30,"time":1792172242687,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Authentication module initialized"}
+FAIL test/api/health.test.js
+  ● Health Endpoint › GET /health returns 200
+
+    ReferenceError: CancelInvoiceUseCase is not defined
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mconst[39m cancelInvoiceUseCase [33m=[39m
+    [31m[1m>[22m[39m[90m 116 |[39m         [36mnew[39m [33mCancelInvoiceUseCase[39m({
+     [90m     |[39m         [31m[1m^[22m[39m
+     [90m 117 |[39m
+     [90m 118 |[39m             invoiceRepository[33m,[39m
+     [90m 119 |[39m[0m
+
+      at createInvoiceModule (src/conference-management/accounting-services/invoice/index.js:116:9)
+      at createAccountingServicesModule (src/conference-management/accounting-services/index.js:160:46)
+      at boostrapModules (src/boostrap/modules.js:30:39)
+      at src/app.js:73:30
+      at Generator.call (src/app.js:2:1)
+      at Generator._invoke [as next] (src/app.js:2:1)
+      at asyncGeneratorStep (src/app.js:2:1)
+      at asyncGeneratorStep (src/app.js:2:1)
+      at _next (src/app.js:2:1)
+      at src/app.js:2:1
+      at apply (src/app.js:100:2)
+      at apply (src/app.js:17:32)
+      at test/api/health.test.js:9:44
+      at Generator.call (test/api/health.test.js:2:1)
+      at Generator._invoke [as next] (test/api/health.test.js:2:1)
+      at asyncGeneratorStep (test/api/health.test.js:2:1)
+      at asyncGeneratorStep (test/api/health.test.js:2:1)
+      at _next (test/api/health.test.js:2:1)
+      at Object.<anonymous> (test/api/health.test.js:2:1)
+
+FAIL test/api/registration.test.js
+  ● Registration API Integration Tests › POST /registrations creates a registration
+
+    ReferenceError: CancelInvoiceUseCase is not defined
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mconst[39m cancelInvoiceUseCase [33m=[39m
+    [31m[1m>[22m[39m[90m 116 |[39m         [36mnew[39m [33mCancelInvoiceUseCase[39m({
+     [90m     |[39m         [31m[1m^[22m[39m
+     [90m 117 |[39m
+     [90m 118 |[39m             invoiceRepository[33m,[39m
+     [90m 119 |[39m[0m
+
+      at createInvoiceModule (src/conference-management/accounting-services/invoice/index.js:116:9)
+      at createAccountingServicesModule (src/conference-management/accounting-services/index.js:160:46)
+      at boostrapModules (src/boostrap/modules.js:30:39)
+      at src/app.js:73:30
+      at Generator.call (src/app.js:2:1)
+      at Generator._invoke [as next] (src/app.js:2:1)
+      at asyncGeneratorStep (src/app.js:2:1)
+      at asyncGeneratorStep (src/app.js:2:1)
+      at _next (src/app.js:2:1)
+      at src/app.js:2:1
+      at apply (src/app.js:100:2)
+      at apply (src/app.js:17:32)
+      at test/api/registration.test.js:9:44
+      at Generator.call (test/api/registration.test.js:2:1)
+      at Generator._invoke [as next] (test/api/registration.test.js:2:1)
+      at asyncGeneratorStep (test/api/registration.test.js:2:1)
+      at asyncGeneratorStep (test/api/registration.test.js:2:1)
+      at _next (test/api/registration.test.js:2:1)
+      at Object.<anonymous> (test/api/registration.test.js:2:1)
+
+{"level":30,"time":1792172243782,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Authentication module initialized"}
+{"level":40,"time":1792172243822,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis connection error."}
+{"level":40,"time":1792172243823,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis connection error."}
+{"level":30,"time":1792172244734,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Authentication module initialized"}
+{"level":40,"time":1792172244760,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis reconnect attempt."}
+{"level":40,"time":1792172244760,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis connection closed."}
+{"level":40,"time":1792172244761,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis reconnect attempt."}
+{"level":40,"time":1792172244761,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis connection closed."}
+FAIL test/api/ticket.test.js
+  ● Ticket API Integration Tests › POST /tickets creates a ticket
+
+    ReferenceError: CancelInvoiceUseCase is not defined
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mconst[39m cancelInvoiceUseCase [33m=[39m
+    [31m[1m>[22m[39m[90m 116 |[39m         [36mnew[39m [33mCancelInvoiceUseCase[39m({
+     [90m     |[39m         [31m[1m^[22m[39m
+     [90m 117 |[39m
+     [90m 118 |[39m             invoiceRepository[33m,[39m
+     [90m 119 |[39m[0m
+
+      at createInvoiceModule (src/conference-management/accounting-services/invoice/index.js:116:9)
+      at createAccountingServicesModule (src/conference-management/accounting-services/index.js:160:46)
+      at boostrapModules (src/boostrap/modules.js:30:39)
+      at src/app.js:73:30
+      at Generator.call (src/app.js:2:1)
+      at Generator._invoke [as next] (src/app.js:2:1)
+      at asyncGeneratorStep (src/app.js:2:1)
+      at asyncGeneratorStep (src/app.js:2:1)
+      at _next (src/app.js:2:1)
+      at src/app.js:2:1
+      at apply (src/app.js:100:2)
+      at apply (src/app.js:17:32)
+      at test/api/ticket.test.js:8:44
+      at Generator.call (test/api/ticket.test.js:2:1)
+      at Generator._invoke [as next] (test/api/ticket.test.js:2:1)
+      at asyncGeneratorStep (test/api/ticket.test.js:2:1)
+      at asyncGeneratorStep (test/api/ticket.test.js:2:1)
+      at _next (test/api/ticket.test.js:2:1)
+      at Object.<anonymous> (test/api/ticket.test.js:2:1)
+
+  ● Ticket API Integration Tests › GET /tickets/:id returns a ticket
+
+    ReferenceError: CancelInvoiceUseCase is not defined
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mconst[39m cancelInvoiceUseCase [33m=[39m
+    [31m[1m>[22m[39m[90m 116 |[39m         [36mnew[39m [33mCancelInvoiceUseCase[39m({
+     [90m     |[39m         [31m[1m^[22m[39m
+     [90m 117 |[39m
+     [90m 118 |[39m             invoiceRepository[33m,[39m
+     [90m 119 |[39m[0m
+
+      at createInvoiceModule (src/conference-management/accounting-services/invoice/index.js:116:9)
+      at createAccountingServicesModule (src/conference-management/accounting-services/index.js:160:46)
+      at boostrapModules (src/boostrap/modules.js:30:39)
+      at src/app.js:73:30
+      at Generator.call (src/app.js:2:1)
+      at Generator._invoke [as next] (src/app.js:2:1)
+      at asyncGeneratorStep (src/app.js:2:1)
+      at asyncGeneratorStep (src/app.js:2:1)
+      at _next (src/app.js:2:1)
+      at src/app.js:2:1
+      at apply (src/app.js:100:2)
+      at apply (src/app.js:17:32)
+      at test/api/ticket.test.js:8:44
+      at Generator.call (test/api/ticket.test.js:2:1)
+      at Generator._invoke [as next] (test/api/ticket.test.js:2:1)
+      at asyncGeneratorStep (test/api/ticket.test.js:2:1)
+      at asyncGeneratorStep (test/api/ticket.test.js:2:1)
+      at _next (test/api/ticket.test.js:2:1)
+      at Object.<anonymous> (test/api/ticket.test.js:2:1)
+
+  ● Ticket API Integration Tests › POST /tickets/:id/reserve reserves a ticket
+
+    ReferenceError: CancelInvoiceUseCase is not defined
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mconst[39m cancelInvoiceUseCase [33m=[39m
+    [31m[1m>[22m[39m[90m 116 |[39m         [36mnew[39m [33mCancelInvoiceUseCase[39m({
+     [90m     |[39m         [31m[1m^[22m[39m
+     [90m 117 |[39m
+     [90m 118 |[39m             invoiceRepository[33m,[39m
+     [90m 119 |[39m[0m
+
+      at createInvoiceModule (src/conference-management/accounting-services/invoice/index.js:116:9)
+      at createAccountingServicesModule (src/conference-management/accounting-services/index.js:160:46)
+      at boostrapModules (src/boostrap/modules.js:30:39)
+      at src/app.js:73:30
+      at Generator.call (src/app.js:2:1)
+      at Generator._invoke [as next] (src/app.js:2:1)
+      at asyncGeneratorStep (src/app.js:2:1)
+      at asyncGeneratorStep (src/app.js:2:1)
+      at _next (src/app.js:2:1)
+      at src/app.js:2:1
+      at apply (src/app.js:100:2)
+      at apply (src/app.js:17:32)
+      at test/api/ticket.test.js:8:44
+      at Generator.call (test/api/ticket.test.js:2:1)
+      at Generator._invoke [as next] (test/api/ticket.test.js:2:1)
+      at asyncGeneratorStep (test/api/ticket.test.js:2:1)
+      at asyncGeneratorStep (test/api/ticket.test.js:2:1)
+      at _next (test/api/ticket.test.js:2:1)
+      at Object.<anonymous> (test/api/ticket.test.js:2:1)
+
+  ● Ticket API Integration Tests › POST /tickets/:id/cancel cancels a ticket
+
+    ReferenceError: CancelInvoiceUseCase is not defined
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m     [36mconst[39m cancelInvoiceUseCase [33m=[39m
+    [31m[1m>[22m[39m[90m 116 |[39m         [36mnew[39m [33mCancelInvoiceUseCase[39m({
+     [90m     |[39m         [31m[1m^[22m[39m
+     [90m 117 |[39m
+     [90m 118 |[39m             invoiceRepository[33m,[39m
+     [90m 119 |[39m[0m
+
+      at createInvoiceModule (src/conference-management/accounting-services/invoice/index.js:116:9)
+      at createAccountingServicesModule (src/conference-management/accounting-services/index.js:160:46)
+      at boostrapModules (src/boostrap/modules.js:30:39)
+      at src/app.js:73:30
+      at Generator.call (src/app.js:2:1)
+      at Generator._invoke [as next] (src/app.js:2:1)
+      at asyncGeneratorStep (src/app.js:2:1)
+      at asyncGeneratorStep (src/app.js:2:1)
+      at _next (src/app.js:2:1)
+      at src/app.js:2:1
+      at apply (src/app.js:100:2)
+      at apply (src/app.js:17:32)
+      at test/api/ticket.test.js:8:44
+      at Generator.call (test/api/ticket.test.js:2:1)
+      at Generator._invoke [as next] (test/api/ticket.test.js:2:1)
+      at asyncGeneratorStep (test/api/ticket.test.js:2:1)
+      at asyncGeneratorStep (test/api/ticket.test.js:2:1)
+      at _next (test/api/ticket.test.js:2:1)
+      at Object.<anonymous> (test/api/ticket.test.js:2:1)
+
+Test Suites: 4 failed, 4 total
+Tests:       7 failed, 7 total
+Snapshots:   0 total
+Time:        7.021 s
+Ran all test suites within paths "test/api/health.test.js", "test/api/ticket.test.js", "test/api/registration.test.js", "test/api/payment.test.js".
+{"level":40,"time":1792172249063,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis reconnect attempt."}
+{"level":40,"time":1792172249064,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis connection closed."}
+{"level":40,"time":1792172244762,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis connection error."}
+{"level":40,"time":1792172249094,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis connection error."}
+{"level":40,"time":1792172249096,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis reconnect attempt."}
+{"level":40,"time":1792172249096,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis connection closed."}
+{"level":40,"time":1792172249098,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis connection error."}
+{"level":40,"time":1792172249098,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis connection error."}
+{"level":40,"time":1792172249098,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis reconnect attempt."}
+{"level":40,"time":1792172249099,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis connection closed."}
+{"level":40,"time":1792172249099,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis reconnect attempt."}
+{"level":40,"time":1792172249099,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis connection closed."}
+Jest did not exit one second after the test run has completed.
+
+'This usually means that there are asynchronous operations that weren't stopped in your tests. Consider running Jest with `--detectOpenHandles` to troubleshoot this issue.
+{"level":40,"time":1792172250082,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis connection error."}
+{"level":40,"time":1792172250082,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis reconnect attempt."}
+{"level":40,"time":1792172250083,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis connection closed."}
+{"level":40,"time":1792172250107,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis connection error."}
+{"level":40,"time":1792172250107,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis reconnect attempt."}
+{"level":40,"time":1792172250108,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis connection closed."}
+{"level":40,"time":1792172251113,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis connection error."}
+{"level":40,"time":1792172251114,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis reconnect attempt."}
+{"level":40,"time":1792172251115,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis connection closed."}
+{"level":40,"time":1792172251117,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis connection error."}
+{"level":40,"time":1792172251117,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis reconnect attempt."}
+{"level":40,"time":1792172251118,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis connection closed."}
+{"level":40,"time":1792172252096,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis connection error."}
+{"level":40,"time":1792172252097,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis reconnect attempt."}
+{"level":40,"time":1792172252097,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis connection closed."}
+{"level":40,"time":1792172252119,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis connection error."}
+{"level":40,"time":1792172252119,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis reconnect attempt."}
+{"level":40,"time":1792172252119,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis connection closed."}
+{"level":40,"time":1792172254147,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis connection error."}
+{"level":40,"time":1792172254147,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis reconnect attempt."}
+{"level":40,"time":1792172254148,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis connection closed."}
+{"level":40,"time":1792172254149,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis connection error."}
+{"level":40,"time":1792172254149,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis reconnect attempt."}
+{"level":40,"time":1792172254150,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis connection closed."}
+{"level":40,"time":1792172255113,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis connection error."}
+{"level":40,"time":1792172255113,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis reconnect attempt."}
+{"level":40,"time":1792172255114,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis connection closed."}
+{"level":40,"time":1792172255136,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis connection error."}
+{"level":40,"time":1792172255136,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis reconnect attempt."}
+{"level":40,"time":1792172255137,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis connection closed."}
+{"level":40,"time":1792172258166,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis connection error."}
+{"level":40,"time":1792172258166,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis reconnect attempt."}
+{"level":50,"time":1792172258167,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis unavailable. Giving up reconnect attempts."}
+{"level":40,"time":1792172258167,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis connection closed."}
+{"level":40,"time":1792172258168,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis client disconnected."}
+{"level":40,"time":1792172258169,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis connection error."}
+{"level":40,"time":1792172258169,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis reconnect attempt."}
+{"level":50,"time":1792172258170,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis unavailable. Giving up reconnect attempts."}
+{"level":40,"time":1792172258170,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis connection closed."}
+{"level":40,"time":1792172258170,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis client disconnected."}
+{"level":40,"time":1792172259131,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis connection error."}
+{"level":40,"time":1792172259131,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis reconnect attempt."}
+{"level":50,"time":1792172259132,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis unavailable. Giving up reconnect attempts."}
+{"level":40,"time":1792172259132,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis connection closed."}
+{"level":40,"time":1792172259132,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis client disconnected."}
+{"level":40,"time":1792172259158,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis connection error."}
+{"level":40,"time":1792172259159,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis reconnect attempt."}
+{"level":50,"time":1792172259159,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis unavailable. Giving up reconnect attempts."}
+{"level":40,"time":1792172259160,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis connection closed."}
+{"level":40,"time":1792172259160,"pid":18564,"hostname":"DESKTOP-LB92A35","msg":"Redis client disconnected."}

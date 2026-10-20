@@ -1,6 +1,6 @@
 // modules/invoicing/presentation/InvoiceController.js
 import { CreateInvoiceRequest }
-  from "../dtos/CreateInvoiceRequest.js";
+  from "../validators/CreateInvoiceRequest.js";
 
 export class InvoiceController {
   /**

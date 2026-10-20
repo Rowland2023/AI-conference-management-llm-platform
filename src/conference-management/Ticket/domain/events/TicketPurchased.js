@@ -1,4 +1,3 @@
-// src/conference-management/ticket/domain/events/TicketPurchased.js
 
 import { DomainEvent } from "../../../../shared/domain/DomainEvent.js";
 
@@ -9,26 +8,32 @@ export class TicketPurchased extends DomainEvent {
     ticketId,
     conferenceId,
     quantity,
-    paymentReference,
+    paymentId,
+    soldTotal,
+    revenue,
+    currency,
     correlationId = null,
     causationId = null,
     occurredAt,
-    eventVersion = 1
+    eventVersion = 1,
   }) {
     super({
       eventName: TicketPurchased.EVENT_NAME,
       aggregateId: ticketId,
-      eventVersion,
-      occurredAt,
       correlationId,
-      causationId
+      causationId,
+      occurredAt,
+      eventVersion,
     });
 
     this.payload = Object.freeze({
       ticketId,
       conferenceId,
       quantity,
-      paymentReference
+      paymentId,
+      soldTotal,
+      revenue,
+      currency,
     });
 
     this.freezeEvent();

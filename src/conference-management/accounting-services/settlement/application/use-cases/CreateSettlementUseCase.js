@@ -5,10 +5,10 @@ import { SettlementResponseDTO }
     from "../dto/SettlementResponseDTO.js";
 
 import { CommandResult }
-    from "../../../../shared/application/dto/CommandResult.js";
+    from "../../../shared/application/dto/CommandResult.js";
 
 import { CommandUseCase }
-    from "../../../../shared/application/use_cases/CommandUseCase.js";
+    from "../../../shared/application/use-case/CommandUseCase.js";
 
 
 export class CreateSettlementUseCase extends CommandUseCase {

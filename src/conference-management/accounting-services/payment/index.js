@@ -1,7 +1,12 @@
 
-// src/conference-management/accounting-services/payment/index.js
+/**
+ * @file src/conference-management/accounting-services/payment/index.js
+ *
+ * Payment bounded-context composition root.
+ * Wires infrastructure, use cases, services, controllers and routes.
+ */
 
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 
 import createPaymentRouter from "./api/payment.route.js";
 
@@ -32,449 +37,275 @@ import { PaystackWebhookVerifier } from "./infrastructure/webhook/PaystackWebhoo
 import { StripeWebhookVerifier } from "./infrastructure/webhook/StripeWebhookVerifier.js";
 
 
-export function createPaymentModule(shared) {
-
+export function createPaymentModule(shared = {}) {
     const {
         db,
-        config,
-        logger,
+        config = {},
+        logger = console,
         outboxRepository,
         redis,
         unitOfWorkFactory,
     } = shared;
 
+    // --------------------------------------------------
+    // Validate shared infrastructure
+    // --------------------------------------------------
 
-    // ======================================================
+    if (!db) {
+        throw new Error("createPaymentModule requires db.");
+    }
+
+    if (!outboxRepository) {
+        throw new Error("createPaymentModule requires outboxRepository.");
+    }
+
+    if (typeof unitOfWorkFactory !== "function") {
+        throw new Error("createPaymentModule requires unitOfWorkFactory.");
+    }
+
+    const unitOfWork = unitOfWorkFactory();
+
+    if (!unitOfWork || typeof unitOfWork.execute !== "function") {
+        throw new Error(
+            "unitOfWorkFactory must return an object implementing execute(work).",
+        );
+    }
+
+    // --------------------------------------------------
     // Infrastructure
-    // ======================================================
+    // --------------------------------------------------
 
-    const paymentRepository =
-        new PostgresPaymentRepository({
+    const paymentRepository = new PostgresPaymentRepository({
+        db,
+        paymentMapper: new PaymentMapper(),
+    });
 
-            db,
+    const refundRepository = new PostgresRefundRepository({ db });
 
-            paymentMapper:
-                new PaymentMapper(),
-
-        });
-
-
-    const refundRepository =
-        new PostgresRefundRepository({
-
-            db,
-
-        });
-
-
-    const lockManager =
-        new RedisLockManager({
-
-            redis,
-
-            logger,
-
-            namespace: "payments",
-
-        });
-
-
-    const unitOfWork =
-        unitOfWorkFactory();
-
+    const lockManager = new RedisLockManager({
+        redis,
+        logger,
+        namespace: "payments",
+    });
 
     const idGenerator = {
-
-        generate() {
-
-            return randomUUID();
-
-        },
-
+        generate: randomUUID,
     };
-
 
     const clock = {
-
-        now() {
-
-            return new Date();
-
-        },
-
+        now: () => new Date(),
     };
 
+    // --------------------------------------------------
+    // Provider gateways
+    // --------------------------------------------------
 
-    // ======================================================
-    // Payment Providers
-    // ======================================================
-
-    const paystackGateway =
-    config.paystack?.secretKey
-
+    const paystackGateway = config.paystack?.secretKey
         ? new PaystackPaymentGateway(
-
             config.paystack.secretKey,
-
-            {
-                logger,
-            }
-
+            { logger },
         )
-
         : null;
 
-
-    const stripeGateway =
-    config.stripe?.secretKey
-
+    const stripeGateway = config.stripe?.secretKey
         ? new StripePaymentGateway(
-
             config.stripe.secretKey,
-
             {
                 logger,
-
-                apiVersion:
-                    config.stripe.apiVersion,
-
-            }
-
+                apiVersion: config.stripe.apiVersion,
+            },
         )
-
         : null;
-
-
-    // ======================================================
-    // Payment Gateway Factory
-    // ======================================================
 
     const paymentGatewayFactory = {
-
         getGateway(provider) {
-
             switch (provider) {
-
-                case "stripe":
-
-                    if (!stripeGateway) {
-
-                        throw new Error(
-                            "Stripe gateway is not configured"
-                        );
-
-                    }
-
-                    return stripeGateway;
-
-
                 case "paystack":
-
                     if (!paystackGateway) {
-
-                        throw new Error(
-                            "Paystack gateway is not configured"
-                        );
-
+                        throw new Error("Paystack gateway is not configured.");
                     }
-
                     return paystackGateway;
 
+                case "stripe":
+                    if (!stripeGateway) {
+                        throw new Error("Stripe gateway is not configured.");
+                    }
+                    return stripeGateway;
 
                 default:
-
                     throw new Error(
-                        `Unsupported payment provider: ${provider}`
+                        `Unsupported payment provider: ${provider}`,
                     );
-
             }
-
         },
-
     };
 
+    // --------------------------------------------------
+    // Webhook verifiers
+    // --------------------------------------------------
 
-    // ======================================================
-    // Webhook Verifiers
-    // ======================================================
+    const paystackWebhookVerifier = config.paystack?.webhookSecret
+        ? new PaystackWebhookVerifier(
+            config.paystack.webhookSecret,
+            { logger },
+        )
+        : null;
 
-    const paystackWebhookVerifier =
-        config.paystack?.webhookSecret
-
-            ? new PaystackWebhookVerifier(
-
-                config.paystack.webhookSecret,
-
-                {
-                    logger,
-                }
-
-            )
-
-            : null;
-
-
-    const stripeWebhookVerifier =
+    const stripeWebhookVerifier = (
         config.stripe?.secretKey &&
         config.stripe?.webhookSecret
+    )
+        ? new StripeWebhookVerifier(
+            config.stripe.secretKey,
+            config.stripe.webhookSecret,
+            {
+                logger,
+                apiVersion: config.stripe.apiVersion,
+            },
+        )
+        : null;
 
-            ? new StripeWebhookVerifier(
+    // --------------------------------------------------
+    // Payment use cases
+    // --------------------------------------------------
 
-                config.stripe.secretKey,
+    const createPaymentUseCase = new CreatePaymentUseCase({
+        paymentRepository,
+        paymentGatewayFactory,
+        lockManager,
+        outboxRepository,
+        logger,
+    });
 
-                config.stripe.webhookSecret,
+    const refundPaymentUseCase = new RefundPaymentUseCase({
+        paymentRepository,
+        refundRepository,
+        paymentGatewayFactory,
+        unitOfWork,
+        idGenerator,
+        clock,
+        lockManager,
+        outboxRepository,
+        logger,
+    });
 
-                {
-                    logger,
-                    apiVersion:
-                        config.stripe.apiVersion,
-                }
+    const getPaymentByIdUseCase = new GetPaymentByIdUseCase({
+        paymentRepository,
+        logger,
+    });
 
-            )
+    const getAllPaymentsUseCase = new GetAllPaymentsUseCase({
+        paymentRepository,
+        logger,
+    });
 
-            : null;
-
-
-    // ======================================================
-    // Payment Use Cases
-    // ======================================================
-
-    const createPaymentUseCase =
-        new CreatePaymentUseCase({
-
-            paymentRepository,
-
-            paymentGatewayFactory,
-
-            lockManager,
-
-            outboxRepository,
-
-            logger,
-
-        });
-
-
-    const refundPaymentUseCase =
-        new RefundPaymentUseCase({
-
-            paymentRepository,
-
-            refundRepository,
-
-            paymentGatewayFactory,
-
-            unitOfWork,
-
-            idGenerator,
-
-            clock,
-
-            lockManager,
-
-            outboxRepository,
-
-            logger,
-
-        });
-
-
-    const getPaymentByIdUseCase =
-        new GetPaymentByIdUseCase({
-
-            paymentRepository,
-
-            logger,
-
-        });
-
-
-    const getAllPaymentsUseCase =
-        new GetAllPaymentsUseCase({
-
-            paymentRepository,
-
-            logger,
-
-        });
-
-
-    // ======================================================
-    // Webhook Use Cases
-    // ======================================================
+    // --------------------------------------------------
+    // Webhook use cases
+    // --------------------------------------------------
 
     const handlePaystackWebhookUseCase =
-        new HandlePaystackWebhookUseCase({
-
-            paymentRepository,
-
-            refundRepository,
-
-            paystackGateway,
-
-            paystackWebhookVerifier,
-
-            lockManager,
-
-            outboxRepository,
-
-            logger,
-
-        });
-
+        paystackWebhookVerifier
+            ? new HandlePaystackWebhookUseCase({
+                paymentRepository,
+                outboxRepository,
+                unitOfWork,
+                paystackWebhookVerifier,
+                logger,
+                clock,
+            })
+            : null;
 
     const handleStripeWebhookUseCase =
-        new HandleStripeWebhookUseCase({
+        stripeWebhookVerifier
+            ? new HandleStripeWebhookUseCase({
+                paymentRepository,
+                outboxRepository,
+                unitOfWork,
+                stripeWebhookVerifier,
+                logger,
+                clock,
+            })
+            : null;
 
-            paymentRepository,
+    // --------------------------------------------------
+    // Application services
+    // --------------------------------------------------
 
-            refundRepository,
+    const paymentService = new PaymentService({
+        createPaymentUseCase,
+        refundPaymentUseCase,
+        getPaymentByIdUseCase,
+        getAllPaymentsUseCase,
+    });
 
-            stripeGateway,
+    const paymentWebhookService = new PaymentWebhookService({
+        handlePaystackWebhookUseCase,
+        handleStripeWebhookUseCase,
+    });
 
-            stripeWebhookVerifier,
-
-            lockManager,
-
-            outboxRepository,
-
-            logger,
-
-        });
-
-
-    // ======================================================
-    // Application Services
-    // ======================================================
-
-    const paymentService =
-        new PaymentService({
-
-            createPaymentUseCase,
-
-            refundPaymentUseCase,
-
-            getPaymentByIdUseCase,
-
-            getAllPaymentsUseCase,
-
-        });
-
-
-    const paymentWebhookService =
-        new PaymentWebhookService({
-
-            handlePaystackWebhookUseCase,
-
-            handleStripeWebhookUseCase,
-
-        });
-
-
-    // ======================================================
+    // --------------------------------------------------
     // Controllers
-    // ======================================================
+    // --------------------------------------------------
 
-    const paymentController =
-        new PaymentController({
+    const paymentController = new PaymentController({
+        paymentService,
+    });
 
-            paymentService,
+    const paymentWebhookController = new PaymentWebhookController({
+        paymentWebhookService,
+    });
 
-        });
-
-
-    const paymentWebhookController =
-        new PaymentWebhookController({
-
-            paymentWebhookService,
-
-        });
-
-
-    // ======================================================
+    // --------------------------------------------------
     // Router
-    // ======================================================
+    // --------------------------------------------------
 
-    const router =
-        createPaymentRouter({
+    const router = createPaymentRouter({
+        paymentController,
+        paymentWebhookController,
+    });
 
-            paymentController,
-
-            paymentWebhookController,
-
-        });
-
-
-    // ======================================================
-    // Public Module API
-    // ======================================================
+    // --------------------------------------------------
+    // Public module API
+    // --------------------------------------------------
 
     return {
-
         router,
 
         controllers: {
-
             paymentController,
-
             paymentWebhookController,
-
         },
 
         services: {
-
             paymentService,
-
             paymentWebhookService,
-
         },
 
         repositories: {
-
             paymentRepository,
-
             refundRepository,
-
         },
 
         gateways: {
-
             paystackGateway,
-
             stripeGateway,
-
             paymentGatewayFactory,
-
         },
 
         useCases: {
-
             createPaymentUseCase,
-
             refundPaymentUseCase,
-
             getPaymentByIdUseCase,
-
             getAllPaymentsUseCase,
-
             handlePaystackWebhookUseCase,
-
             handleStripeWebhookUseCase,
-
         },
 
         infrastructure: {
-
             lockManager,
-
             unitOfWork,
-
             paystackWebhookVerifier,
-
             stripeWebhookVerifier,
-
         },
-
     };
-
 }

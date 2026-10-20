@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">29.72% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/37</span>
+                <span class='fraction'>11/37</span>
             </div>
         
             
@@ -37,16 +37,16 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">16.66% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/6</span>
+                <span class='fraction'>1/6</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">29.72% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/37</span>
+                <span class='fraction'>11/37</span>
             </div>
         
             
@@ -184,20 +184,20 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -284,7 +284,7 @@
      * @param {Object} deps
      * @param {import('../../ports/ILogger.js').ILogger} deps.logger
      */
-<span class="fstat-no" title="function not covered" >    co</span>nstructor({
+    constructor({
         createEventUseCase,
         getEventByIdUseCase,
         listEventsUseCase,
@@ -292,20 +292,20 @@
         cancelEventUseCase,
         logger // Injected interface port
     }) {
-<span class="cstat-no" title="statement not covered" >        this.createEventUseCase = createEventUseCase;</span>
-<span class="cstat-no" title="statement not covered" >        this.getEventByIdUseCase = getEventByIdUseCase;</span>
-<span class="cstat-no" title="statement not covered" >        this.listEventsUseCase = listEventsUseCase;</span>
-<span class="cstat-no" title="statement not covered" >        this.rescheduleEventUseCase = rescheduleEventUseCase;</span>
-<span class="cstat-no" title="statement not covered" >        this.cancelEventUseCase = cancelEventUseCase;</span>
+        this.createEventUseCase = createEventUseCase;
+        this.getEventByIdUseCase = getEventByIdUseCase;
+        this.listEventsUseCase = listEventsUseCase;
+        this.rescheduleEventUseCase = rescheduleEventUseCase;
+        this.cancelEventUseCase = cancelEventUseCase;
         
         // Scope the logger to this specific controller context
-<span class="cstat-no" title="statement not covered" >        this.logger = logger.child({ context: "EventController" });</span>
+        this.logger = logger.child({ context: "EventController" });
 &nbsp;
-<span class="cstat-no" title="statement not covered" >        this.createEvent = this.createEvent.bind(this);</span>
-<span class="cstat-no" title="statement not covered" >        this.listEvents = this.listEvents.bind(this);</span>
-<span class="cstat-no" title="statement not covered" >        this.getEventById = this.getEventById.bind(this);</span>
-<span class="cstat-no" title="statement not covered" >        this.rescheduleEvent = this.rescheduleEvent.bind(this);</span>
-<span class="cstat-no" title="statement not covered" >        this.cancelEvent = this.cancelEvent.bind(this);</span>
+        this.createEvent = this.createEvent.bind(this);
+        this.listEvents = this.listEvents.bind(this);
+        this.getEventById = this.getEventById.bind(this);
+        this.rescheduleEvent = this.rescheduleEvent.bind(this);
+        this.cancelEvent = this.cancelEvent.bind(this);
     }
 &nbsp;
 <span class="fstat-no" title="function not covered" >    as</span>ync createEvent(req, res, next) {
@@ -394,7 +394,7 @@
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-08-14T22:48:18.627Z
+                at 2026-10-20T09:58:03.016Z
             </div>
         <script src="../../../../../prettify.js"></script>
         <script>

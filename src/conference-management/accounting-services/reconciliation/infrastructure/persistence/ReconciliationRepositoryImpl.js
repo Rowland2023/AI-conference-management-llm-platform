@@ -1,6 +1,6 @@
 // reconciliation/infrastructure/persistence/ReconciliationRepositoryImpl.js
 
-import { ReconciliationRepository } from "../../domain/repositories/ReconciliationRepository.js";
+import { ReconciliationRepository } from "../../domain/repositories/reconciliation_repository.js";
 import { ReconciliationMapper } from "./ReconciliationMapper.js";
 
 export class ReconciliationRepositoryImpl

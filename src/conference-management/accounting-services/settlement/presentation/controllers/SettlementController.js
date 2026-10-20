@@ -1,5 +1,5 @@
 import { BaseController }
-    from "../../../../shared/presentation/BaseController.js";
+    from "../../../shared/presentation/BaseController.js";
 
 
 export class SettlementController

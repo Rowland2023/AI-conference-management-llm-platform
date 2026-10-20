@@ -4,7 +4,7 @@ import { z }
     from "zod";
 
 import { TaxType }
-    from "../../domain/value_objects/TaxType.js";
+    from "../../domain/value-objects/TaxType.js";
 
 
 const taxTypes =

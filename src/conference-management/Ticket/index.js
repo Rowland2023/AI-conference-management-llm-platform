@@ -1,361 +1,232 @@
+
 // src/conference-management/ticket/index.js
-// Composition Root for Ticket Bounded Context
 
-
-// Infrastructure
-import { TicketModelDefine } from "./infrastructure/schemas/TicketModel.js";
 import { TicketMapper } from "./infrastructure/mappers/TicketMapper.js";
 import { PostgresTicketRepository } from "./infrastructure/repository/PostgresTicketRepository.js";
-
-
-// Application
 import { TicketCommandService } from "./application/commands/TicketCommandService.js";
-
-
-// Presentation
+import { TicketQueryService } from "./application/queries/TicketQueryService.js";
 import { TicketController } from "./api/ticket.controller.js";
 import { createTicketRouter } from "./api/ticket.route.js";
-
-
 
 export function createTicketModule({
     db,
     unitOfWorkFactory,
     outboxRepository,
     logger,
+    authenticateMiddleware,
 }) {
-
-
-    if (!db) {
+    if (typeof db !== "function") {
         throw new Error(
-            "TicketModule: 'db' is required."
+            "TicketModule requires a Knex database connection."
         );
     }
 
-
-    if (!unitOfWorkFactory) {
+    if (typeof unitOfWorkFactory !== "function") {
         throw new Error(
-            "TicketModule: 'unitOfWorkFactory' is required."
+            "TicketModule requires unitOfWorkFactory."
         );
     }
 
-
-    if (!outboxRepository) {
+    if (
+        !outboxRepository ||
+        typeof outboxRepository.save !== "function"
+    ) {
         throw new Error(
-            "TicketModule: 'outboxRepository' is required."
+            "TicketModule requires outboxRepository.save()."
         );
     }
 
-
-    if (!logger) {
+    if (typeof authenticateMiddleware !== "function") {
         throw new Error(
-            "TicketModule: 'logger' is required."
+            "TicketModule requires authenticateMiddleware."
         );
     }
 
+    const unitOfWork = unitOfWorkFactory();
 
+    if (
+        !unitOfWork ||
+        typeof unitOfWork.runInTransaction !== "function"
+    ) {
+        throw new Error(
+            "TicketModule unit of work must expose runInTransaction(callback)."
+        );
+    }
 
-    //----------------------------------------------------------
-    // Transaction Boundary
-    //----------------------------------------------------------
+    const ticketMapper = new TicketMapper();
 
-    const uow = unitOfWorkFactory();
+    const ticketRepository = new PostgresTicketRepository({
+        db,
+        mapper: ticketMapper,
+    });
 
+    const ticketCommandService = new TicketCommandService({
+        ticketRepository,
+        outboxRepository,
+        unitOfWork,
+        logger,
+    });
 
+    const ticketQueryService = new TicketQueryService({
+        ticketRepository,
+        logger,
+    });
 
-    //----------------------------------------------------------
-    // Persistence
-    //----------------------------------------------------------
+    const ticketController = new TicketController({
+        ticketCommandService,
+        ticketQueryService,
+    });
 
-    const TicketModel =
-        TicketModelDefine(db);
-
-
-    const ticketMapper =
-        new TicketMapper();
-
-
-    const ticketRepository =
-        new PostgresTicketRepository({
-
-            model: TicketModel,
-
-            mapper: ticketMapper,
-
-            transactionManager: uow,
-
-        });
-
-
-
-    //----------------------------------------------------------
-    // Application Service
-    //----------------------------------------------------------
-
-    const ticketCommandService =
-        new TicketCommandService({
-
-            ticketRepository,
-
-            outboxRepository,
-
-            unitOfWork: uow,
-
-            logger,
-
-        });
-
-
-
-    //----------------------------------------------------------
-    // HTTP Controller
-    //----------------------------------------------------------
-
-    const ticketController =
-        new TicketController({
-
-            ticketCommandService,
-
-        });
-
-
-
-    const router =
-        createTicketRouter({
-
-            ticketController,
-
-        });
-
-
-
-    //----------------------------------------------------------
-    // Event Lifecycle
-    //----------------------------------------------------------
+    const router = createTicketRouter({
+        ticketController,
+        authenticateMiddleware,
+    });
 
     const subscriptions = [];
 
+    function extractEvent(envelope) {
+        const payload = envelope?.payload ?? envelope ?? {};
+        const metadata = envelope?.metadata ?? envelope ?? {};
 
+        return {
+            payload,
+            correlationId: metadata.correlationId ?? null,
+        };
+    }
+
+    function subscribe(eventBus, eventName, handler) {
+        const subscription = eventBus.subscribe(
+            eventName,
+            handler
+        );
+
+        if (subscription) {
+            subscriptions.push(subscription);
+        }
+    }
 
     return {
-
-
-        /**
-         * REQUIRED BY bootstrap/routes.js
-         */
         name: "ticket",
-
         basePath: "/tickets",
-
-
         router,
 
-
-
         subscribe(eventBus) {
-
-
-            if (!eventBus) {
-
-                logger.warn(
+            if (
+                !eventBus ||
+                typeof eventBus.subscribe !== "function"
+            ) {
+                logger?.warn?.(
                     "TicketModule: EventBus not supplied."
                 );
-
                 return;
-
             }
 
+            subscribe(
+                eventBus,
+                "payment.failed",
+                async (envelope) => {
+                    const { payload, correlationId } =
+                        extractEvent(envelope);
 
-
-            subscriptions.push(
-
-                eventBus.subscribe(
-                    "payment.failed",
-
-                    async (event) => {
-
-                        const {
-                            ticketId,
-                            reason,
-                            correlationId,
-                        } = event;
-
-
-
-                        if (!ticketId) {
-                            return;
-                        }
-
-
-
-                        try {
-
-                            await ticketCommandService.releaseTicket({
-
-                                ticketId,
-
-                                reason:
-                                    reason ??
-                                    "PAYMENT_FAILED",
-
-                                correlationId,
-
-                            });
-
-
-
-                            logger.info({
-
-                                ticketId,
-
-                                correlationId,
-
-                            },
-                            "Ticket released after payment failure."
-                            );
-
-
-                        } catch(error) {
-
-
-                            logger.error({
-
-                                error,
-
-                                ticketId,
-
-                                correlationId,
-
-                            },
-                            "Failed releasing ticket."
-                            );
-
-                        }
-
+                    if (
+                        !payload.ticketId ||
+                        !Number.isSafeInteger(payload.quantity) ||
+                        payload.quantity <= 0
+                    ) {
+                        logger?.warn?.(
+                            { payload },
+                            "Ignoring payment.failed event with invalid ticket fields."
+                        );
+                        return;
                     }
 
-                )
-
+                    await ticketCommandService.releaseTicket({
+                        ticketId: payload.ticketId,
+                        quantity: payload.quantity,
+                        correlationId,
+                    });
+                }
             );
 
+            subscribe(
+                eventBus,
+                "payment.succeeded",
+                async (envelope) => {
+                    const { payload, correlationId } =
+                        extractEvent(envelope);
 
+                    const paymentId =
+                        payload.paymentId ??
+                        payload.paymentReference;
 
-            subscriptions.push(
-
-                eventBus.subscribe(
-                    "payment.succeeded",
-
-                    async(event)=>{
-
-
-                        const {
-
-                            ticketId,
-
-                            paymentReference,
-
-                            correlationId,
-
-                        } = event;
-
-
-
-                        if (!ticketId) {
-                            return;
-                        }
-
-
-
-                        try {
-
-
-                            await ticketCommandService.confirmPurchase({
-
-                                ticketId,
-
-                                paymentReference,
-
-                                correlationId,
-
-                            });
-
-
-
-                            logger.info({
-
-                                ticketId,
-
-                                correlationId,
-
-                            },
-                            "Ticket purchase confirmed."
-                            );
-
-
-                        } catch(error) {
-
-
-                            logger.error({
-
-                                error,
-
-                                ticketId,
-
-                                correlationId,
-
-                            },
-                            "Failed confirming ticket purchase."
-                            );
-
-
-                        }
-
-
+                    if (
+                        !payload.ticketId ||
+                        !paymentId ||
+                        !Number.isSafeInteger(payload.quantity) ||
+                        payload.quantity <= 0
+                    ) {
+                        logger?.warn?.(
+                            { payload },
+                            "Ignoring payment.succeeded event with invalid purchase fields."
+                        );
+                        return;
                     }
 
-                )
-
+                    await ticketCommandService.confirmPurchase({
+                        ticketId: payload.ticketId,
+                        quantity: payload.quantity,
+                        paymentId,
+                        correlationId,
+                    });
+                }
             );
 
+            subscribe(
+                eventBus,
+                "conference.cancelled",
+                async (envelope) => {
+                    const { payload, correlationId } =
+                        extractEvent(envelope);
 
-        },
+                    if (!payload.conferenceId) {
+                        logger?.warn?.(
+                            { payload },
+                            "Ignoring conference.cancelled event without conferenceId."
+                        );
+                        return;
+                    }
 
-
-
-        async start(){
-
-            logger.info(
-                "Ticket module started."
+                    await ticketCommandService
+                        .cancelTicketsByConference({
+                            conferenceId: payload.conferenceId,
+                            reason:
+                                payload.reason ??
+                                "CONFERENCE_CANCELLED",
+                            correlationId,
+                        });
+                }
             );
 
+            logger?.info?.(
+                "TicketModule event subscriptions registered."
+            );
         },
 
+        async start() {
+            logger?.info?.("Ticket module started.");
+        },
 
-
-        async stop(eventBus){
-
-
+        async stop(eventBus) {
             if (
                 eventBus &&
                 typeof eventBus.unsubscribe === "function"
-            ){
-
-                for(const token of subscriptions){
-
-                    eventBus.unsubscribe(token);
-
+            ) {
+                for (const subscription of subscriptions.splice(0)) {
+                    await eventBus.unsubscribe(subscription);
                 }
-
             }
 
-
-            logger.info(
-                "Ticket module stopped."
-            );
-
+            logger?.info?.("Ticket module stopped.");
         },
-
-
     };
-
 }

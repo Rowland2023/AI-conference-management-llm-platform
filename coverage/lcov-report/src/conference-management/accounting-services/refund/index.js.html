@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">28.57% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/14</span>
+                <span class='fraction'>4/14</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">50% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/2</span>
+                <span class='fraction'>1/2</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">25% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/4</span>
+                <span class='fraction'>1/4</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">28.57% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/14</span>
+                <span class='fraction'>4/14</span>
             </div>
         
             
@@ -310,7 +310,8 @@
 <a name='L245'></a><a href='#L245'>245</a>
 <a name='L246'></a><a href='#L246'>246</a>
 <a name='L247'></a><a href='#L247'>247</a>
-<a name='L248'></a><a href='#L248'>248</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L248'></a><a href='#L248'>248</a>
+<a name='L249'></a><a href='#L249'>249</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -345,7 +346,8 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -356,13 +358,13 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -561,11 +563,12 @@
 &nbsp;
 import { Router } from "express";
 &nbsp;
-import RefundRepository from "./infrastructure/repositories/RefundRepository.js";
+import { RefundRepository }
+    from "./infrastructure/repositories/RefundRepository.js";
 &nbsp;
 import {
     PaystackGatewayAdapter,
-} from "./infrastructure/adapters/PaymentGatewayAdapter.js";
+} from "./infrastructure/repositories/adapters/PaymentGatewayAdapter.js";
 &nbsp;
 &nbsp;
 import ProcessRefundUseCase from "./application/ProcessRefundUseCase.js";
@@ -577,7 +580,7 @@ import { createRefundRoutes } from "./presentation/http/refund.routes.js";
 &nbsp;
 &nbsp;
 &nbsp;
-export function <span class="fstat-no" title="function not covered" >createRefundModule(</span>shared) {
+export function createRefundModule(shared) {
 &nbsp;
 &nbsp;
     const {
@@ -592,7 +595,7 @@ export function <span class="fstat-no" title="function not covered" >createRefun
 &nbsp;
         outboxRepository,
 &nbsp;
-    } = <span class="cstat-no" title="statement not covered" >shared;</span>
+    } = shared;
 &nbsp;
 &nbsp;
 &nbsp;
@@ -603,13 +606,13 @@ export function <span class="fstat-no" title="function not covered" >createRefun
 &nbsp;
 &nbsp;
     const paystackSecretKey =
-<span class="cstat-no" title="statement not covered" >        process.env.PAYSTACK_SECRET_KEY;</span>
+        process.env.PAYSTACK_SECRET_KEY;
 &nbsp;
 &nbsp;
 &nbsp;
-<span class="cstat-no" title="statement not covered" >    if (!paystackSecretKey) {</span>
+    <span class="missing-if-branch" title="else path not taken" >E</span>if (!paystackSecretKey) {
 &nbsp;
-<span class="cstat-no" title="statement not covered" >        throw new Error(</span>
+        throw new Error(
             "PAYSTACK_SECRET_KEY environment variable is required."
         );
 &nbsp;
@@ -811,7 +814,7 @@ export function <span class="fstat-no" title="function not covered" >createRefun
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-08-14T22:48:18.627Z
+                at 2026-10-20T09:58:03.016Z
             </div>
         <script src="../../../../prettify.js"></script>
         <script>

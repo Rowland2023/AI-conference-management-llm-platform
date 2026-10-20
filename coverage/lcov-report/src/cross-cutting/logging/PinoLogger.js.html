@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">28.57% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/14</span>
+                <span class='fraction'>4/14</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">28.57% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/14</span>
+                <span class='fraction'>4/14</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">50% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/6</span>
+                <span class='fraction'>3/6</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">28.57% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/14</span>
+                <span class='fraction'>4/14</span>
             </div>
         
             
@@ -151,13 +151,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -165,7 +161,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -173,13 +169,17 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -227,18 +227,18 @@ export class PinoLogger extends ILogger {
      * @param {object} [options]
      * @param {import("pino").Logger} [logger]
      */
-<span class="fstat-no" title="function not covered" >    co</span>nstructor(options = <span class="branch-0 cbranch-no" title="branch not covered" >{},</span> logger = <span class="branch-0 cbranch-no" title="branch not covered" >null)</span> {
-<span class="cstat-no" title="statement not covered" >        super();</span>
+    constructor(options = {}, logger = null) {
+        super();
 &nbsp;
-<span class="cstat-no" title="statement not covered" >        this.logger = logger ?? pino(options);</span>
+        this.logger = logger ?? pino(options);
     }
 &nbsp;
 <span class="fstat-no" title="function not covered" >    de</span>bug(message, context = <span class="branch-0 cbranch-no" title="branch not covered" >{})</span> {
 <span class="cstat-no" title="statement not covered" >        this.logger.debug(context, message);</span>
     }
 &nbsp;
-<span class="fstat-no" title="function not covered" >    in</span>fo(message, context = <span class="branch-0 cbranch-no" title="branch not covered" >{})</span> {
-<span class="cstat-no" title="statement not covered" >        this.logger.info(context, message);</span>
+    info(message, context = <span class="branch-0 cbranch-no" title="branch not covered" >{})</span> {
+        this.logger.info(context, message);
     }
 &nbsp;
 <span class="fstat-no" title="function not covered" >    wa</span>rn(message, context = <span class="branch-0 cbranch-no" title="branch not covered" >{})</span> {
@@ -255,8 +255,8 @@ export class PinoLogger extends ILogger {
      * @param {object} bindings
      * @returns {PinoLogger}
      */
-<span class="fstat-no" title="function not covered" >    ch</span>ild(bindings = <span class="branch-0 cbranch-no" title="branch not covered" >{})</span> {
-<span class="cstat-no" title="statement not covered" >        return new PinoLogger(</span>
+    child(bindings = <span class="branch-0 cbranch-no" title="branch not covered" >{})</span> {
+        return new PinoLogger(
             {},
             this.logger.child(bindings)
         );
@@ -301,7 +301,7 @@ export class PinoLogger extends ILogger {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-08-14T22:48:18.627Z
+                at 2026-10-20T09:58:03.016Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>

@@ -1,0 +1,407 @@
+
+> conference-management@1.0.0 test
+> cross-env NODE_ENV=test jest --runInBand --coverage=false --verbose
+
+
+--------------------------------
+Starting Test Suite
+--------------------------------
+{"level":30,"time":1792318822412,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Authentication module initialized"}
+{"level":30,"time":1792318822488,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Conference management modules initialized"}
+  console.log
+    { module: 'authentication', basePath: undefined, hasRouter: true }
+
+      at log (src/boostrap/routes.js:31:13)
+
+{"level":30,"time":1792318822554,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Module router registered."}
+{"level":40,"time":1792318822555,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Module has no HTTP routes."}
+  console.log
+    { module: 'registration', basePath: '/registrations', hasRouter: true }
+
+      at log (src/boostrap/routes.js:31:13)
+
+{"level":30,"time":1792318822556,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Module router registered."}
+  console.log
+    { module: undefined, basePath: undefined, hasRouter: true }
+
+      at log (src/boostrap/routes.js:31:13)
+
+{"level":30,"time":1792318822557,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Module router registered."}
+  console.log
+    { module: 'ticket', basePath: '/tickets', hasRouter: true }
+
+      at log (src/boostrap/routes.js:31:13)
+
+{"level":30,"time":1792318822558,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Module router registered."}
+{"level":30,"time":1792318825457,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Redis connected."}
+{"level":30,"time":1792318825500,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Redis ready."}
+{"level":30,"time":1792318825505,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Stopping application lifecycle..."}
+{"level":30,"time":1792318825506,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Ticket module stopped."}
+{"level":30,"time":1792318825508,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Conference Registration sub-module stopped."}
+{"level":30,"time":1792318825509,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Stopping Conference Event Schedule Outbox Worker..."}
+{"level":30,"time":1792318825509,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"[OutboxWorker] Stopped."}
+{"level":30,"time":1792318825510,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"[OutboxWorker] Stopped."}
+{"level":30,"time":1792318825510,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Outbox worker stopped."}
+{"level":30,"time":1792318825512,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Event bus stopped."}
+{"level":30,"time":1792318825512,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Kafka connection closed."}
+{"level":30,"time":1792318825512,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Application stopped successfully."}
+FAIL test/api/ticket.test.js (46.487 s)
+  Ticket API Integration Tests
+    POST /tickets
+      × creates a ticket (2885 ms)
+    GET /tickets/:id
+      × returns the requested ticket (22 ms)
+    POST /tickets/:id/reserve
+      × reserves a ticket (14 ms)
+    POST /tickets/:id/cancel
+      × cancels a ticket (16 ms)
+
+  ● Ticket API Integration Tests › POST /tickets › creates a ticket
+
+    Expected HTTP 201, received 500.
+    Response body: {}
+    Response text: <!DOCTYPE html>
+    <html lang="en">
+    <head>
+    <meta charset="utf-8">
+    <title>Error</title>
+    </head>
+    <body>
+    <pre>TypeError: Cannot read properties of undefined (reading &#39;execute&#39;)<br> &nbsp; &nbsp;at TicketController.&lt;anonymous&gt; (C:\Users\rowla\conference-management\src\conference-management\ticket\api\ticket.controller.js:43:56)<br> &nbsp; &nbsp;at Generator.call (C:\Users\rowla\conference-management\src\conference-management\ticket\api\ticket.controller.js:2:1)<br> &nbsp; &nbsp;at Generator._invoke [as next] (C:\Users\rowla\conference-management\src\conference-management\ticket\api\ticket.controller.js:2:1)<br> &nbsp; &nbsp;at asyncGeneratorStep (C:\Users\rowla\conference-management\src\conference-management\ticket\api\ticket.controller.js:2:1)<br> &nbsp; &nbsp;at asyncGeneratorStep (C:\Users\rowla\conference-management\src\conference-management\ticket\api\ticket.controller.js:2:1)<br> &nbsp; &nbsp;at _next (C:\Users\rowla\conference-management\src\conference-management\ticket\api\ticket.controller.js:2:1)<br> &nbsp; &nbsp;at new Promise (&lt;anonymous&gt;)<br> &nbsp; &nbsp;at TicketController.&lt;anonymous&gt; (C:\Users\rowla\conference-management\src\conference-management\ticket\api\ticket.controller.js:2:1)<br> &nbsp; &nbsp;at TicketController.apply [as createTicket] (C:\Users\rowla\conference-management\src\conference-management\ticket\api\ticket.controller.js:38:21)<br> &nbsp; &nbsp;at call (C:\Users\rowla\conference-management\src\conference-management\ticket\api\ticket.route.js:57:30)<br> &nbsp; &nbsp;at Layer.handleRequest (C:\Users\rowla\conference-management\node_modules\router\lib\layer.js:152:17)<br> &nbsp; &nbsp;at next (C:\Users\rowla\conference-management\node_modules\router\lib\route.js:157:13)<br> &nbsp; &nbsp;at next (C:\Users\rowla\conference-management\src\shared\infrastructure\middleware\validate.js:28:13)<br> &nbsp; &nbsp;at Layer.handleRequest (C:\Users\rowla\conference-management\node_modules\router\lib\layer.js:152:17)<br> &nbsp; &nbsp;at next (C:\Users\rowla\conference-management\node_modules\router\lib\route.js:157:13)<br> &nbsp; &nbsp;at next (C:\Users\rowla\conference-management\src\shared\infrastructure\middleware\idempotency.js:24:5)<br> &nbsp; &nbsp;at Layer.handleRequest (C:\Users\rowla\conference-management\node_modules\router\lib\layer.js:152:17)<br> &nbsp; &nbsp;at next (C:\Users\rowla\conference-management\node_modules\router\lib\route.js:157:13)<br> &nbsp; &nbsp;at Route.dispatch (C:\Users\rowla\conference-management\node_modules\router\lib\route.js:117:3)<br> &nbsp; &nbsp;at handle (C:\Users\rowla\conference-management\node_modules\router\index.js:435:11)<br> &nbsp; &nbsp;at Layer.handleRequest (C:\Users\rowla\conference-management\node_modules\router\lib\layer.js:152:17)<br> &nbsp; &nbsp;at C:\Users\rowla\conference-management\node_modules\router\index.js:295:15<br> &nbsp; &nbsp;at processParams (C:\Users\rowla\conference-management\node_modules\router\index.js:582:12)<br> &nbsp; &nbsp;at next (C:\Users\rowla\conference-management\node_modules\router\index.js:291:5)<br> &nbsp; &nbsp;at next (C:\Users\rowla\conference-management\src\conference-management\authentication\presentation\middleware\authenticate.js:43:20)<br> &nbsp; &nbsp;at Generator.call (C:\Users\rowla\conference-management\src\conference-management\authentication\presentation\middleware\authenticate.js:2:1)<br> &nbsp; &nbsp;at Generator._invoke [as next] (C:\Users\rowla\conference-management\src\conference-management\authentication\presentation\middleware\authenticate.js:2:1)<br> &nbsp; &nbsp;at asyncGeneratorStep (C:\Users\rowla\conference-management\src\conference-management\authentication\presentation\middleware\authenticate.js:2:1)<br> &nbsp; &nbsp;at asyncGeneratorStep (C:\Users\rowla\conference-management\src\conference-management\authentication\presentation\middleware\authenticate.js:2:1)<br> &nbsp; &nbsp;at processTicksAndRejections (node:internal/process/task_queues:103:5)</pre>
+    </body>
+    </html>
+
+    [0m [90m 31 |[39m     [36mconst[39m expectSuccess [33m=[39m (response[33m,[39m expectedStatus) [33m=>[39m {
+     [90m 32 |[39m         [36mif[39m (response[33m.[39mstatusCode [33m!==[39m expectedStatus) {
+    [31m[1m>[22m[39m[90m 33 |[39m             [36mthrow[39m [36mnew[39m [33mError[39m(
+     [90m    |[39m                   [31m[1m^[22m[39m
+     [90m 34 |[39m                 [
+     [90m 35 |[39m                     [32m`Expected HTTP ${expectedStatus}, received ${response.statusCode}.`[39m[33m,[39m
+     [90m 36 |[39m                     [32m`Response body: ${JSON.stringify(response.body)}`[39m[33m,[39m[0m
+
+      at expectSuccess (test/api/ticket.test.js:33:19)
+      at expectSuccess (test/api/ticket.test.js:50:9)
+      at Generator.call (test/api/ticket.test.js:2:1)
+      at Generator._invoke [as next] (test/api/ticket.test.js:2:1)
+      at asyncGeneratorStep (test/api/ticket.test.js:2:1)
+      at asyncGeneratorStep (test/api/ticket.test.js:2:1)
+
+  ● Ticket API Integration Tests › GET /tickets/:id › returns the requested ticket
+
+    Expected HTTP 201, received 500.
+    Response body: {}
+    Response text: <!DOCTYPE html>
+    <html lang="en">
+    <head>
+    <meta charset="utf-8">
+    <title>Error</title>
+    </head>
+    <body>
+    <pre>TypeError: Cannot read properties of undefined (reading &#39;execute&#39;)<br> &nbsp; &nbsp;at TicketController.&lt;anonymous&gt; (C:\Users\rowla\conference-management\src\conference-management\ticket\api\ticket.controller.js:43:56)<br> &nbsp; &nbsp;at Generator.call (C:\Users\rowla\conference-management\src\conference-management\ticket\api\ticket.controller.js:2:1)<br> &nbsp; &nbsp;at Generator._invoke [as next] (C:\Users\rowla\conference-management\src\conference-management\ticket\api\ticket.controller.js:2:1)<br> &nbsp; &nbsp;at asyncGeneratorStep (C:\Users\rowla\conference-management\src\conference-management\ticket\api\ticket.controller.js:2:1)<br> &nbsp; &nbsp;at asyncGeneratorStep (C:\Users\rowla\conference-management\src\conference-management\ticket\api\ticket.controller.js:2:1)<br> &nbsp; &nbsp;at _next (C:\Users\rowla\conference-management\src\conference-management\ticket\api\ticket.controller.js:2:1)<br> &nbsp; &nbsp;at new Promise (&lt;anonymous&gt;)<br> &nbsp; &nbsp;at TicketController.&lt;anonymous&gt; (C:\Users\rowla\conference-management\src\conference-management\ticket\api\ticket.controller.js:2:1)<br> &nbsp; &nbsp;at TicketController.apply [as createTicket] (C:\Users\rowla\conference-management\src\conference-management\ticket\api\ticket.controller.js:38:21)<br> &nbsp; &nbsp;at call (C:\Users\rowla\conference-management\src\conference-management\ticket\api\ticket.route.js:57:30)<br> &nbsp; &nbsp;at Layer.handleRequest (C:\Users\rowla\conference-management\node_modules\router\lib\layer.js:152:17)<br> &nbsp; &nbsp;at next (C:\Users\rowla\conference-management\node_modules\router\lib\route.js:157:13)<br> &nbsp; &nbsp;at next (C:\Users\rowla\conference-management\src\shared\infrastructure\middleware\validate.js:28:13)<br> &nbsp; &nbsp;at Layer.handleRequest (C:\Users\rowla\conference-management\node_modules\router\lib\layer.js:152:17)<br> &nbsp; &nbsp;at next (C:\Users\rowla\conference-management\node_modules\router\lib\route.js:157:13)<br> &nbsp; &nbsp;at next (C:\Users\rowla\conference-management\src\shared\infrastructure\middleware\idempotency.js:24:5)<br> &nbsp; &nbsp;at Layer.handleRequest (C:\Users\rowla\conference-management\node_modules\router\lib\layer.js:152:17)<br> &nbsp; &nbsp;at next (C:\Users\rowla\conference-management\node_modules\router\lib\route.js:157:13)<br> &nbsp; &nbsp;at Route.dispatch (C:\Users\rowla\conference-management\node_modules\router\lib\route.js:117:3)<br> &nbsp; &nbsp;at handle (C:\Users\rowla\conference-management\node_modules\router\index.js:435:11)<br> &nbsp; &nbsp;at Layer.handleRequest (C:\Users\rowla\conference-management\node_modules\router\lib\layer.js:152:17)<br> &nbsp; &nbsp;at C:\Users\rowla\conference-management\node_modules\router\index.js:295:15<br> &nbsp; &nbsp;at processParams (C:\Users\rowla\conference-management\node_modules\router\index.js:582:12)<br> &nbsp; &nbsp;at next (C:\Users\rowla\conference-management\node_modules\router\index.js:291:5)<br> &nbsp; &nbsp;at next (C:\Users\rowla\conference-management\src\conference-management\authentication\presentation\middleware\authenticate.js:43:20)<br> &nbsp; &nbsp;at Generator.call (C:\Users\rowla\conference-management\src\conference-management\authentication\presentation\middleware\authenticate.js:2:1)<br> &nbsp; &nbsp;at Generator._invoke [as next] (C:\Users\rowla\conference-management\src\conference-management\authentication\presentation\middleware\authenticate.js:2:1)<br> &nbsp; &nbsp;at asyncGeneratorStep (C:\Users\rowla\conference-management\src\conference-management\authentication\presentation\middleware\authenticate.js:2:1)<br> &nbsp; &nbsp;at asyncGeneratorStep (C:\Users\rowla\conference-management\src\conference-management\authentication\presentation\middleware\authenticate.js:2:1)<br> &nbsp; &nbsp;at processTicksAndRejections (node:internal/process/task_queues:103:5)</pre>
+    </body>
+    </html>
+
+    [0m [90m 31 |[39m     [36mconst[39m expectSuccess [33m=[39m (response[33m,[39m expectedStatus) [33m=>[39m {
+     [90m 32 |[39m         [36mif[39m (response[33m.[39mstatusCode [33m!==[39m expectedStatus) {
+    [31m[1m>[22m[39m[90m 33 |[39m             [36mthrow[39m [36mnew[39m [33mError[39m(
+     [90m    |[39m                   [31m[1m^[22m[39m
+     [90m 34 |[39m                 [
+     [90m 35 |[39m                     [32m`Expected HTTP ${expectedStatus}, received ${response.statusCode}.`[39m[33m,[39m
+     [90m 36 |[39m                     [32m`Response body: ${JSON.stringify(response.body)}`[39m[33m,[39m[0m
+
+      at expectSuccess (test/api/ticket.test.js:33:19)
+      at expectSuccess (test/api/ticket.test.js:50:9)
+      at Generator.call (test/api/ticket.test.js:2:1)
+      at Generator._invoke [as next] (test/api/ticket.test.js:2:1)
+      at asyncGeneratorStep (test/api/ticket.test.js:2:1)
+      at asyncGeneratorStep (test/api/ticket.test.js:2:1)
+
+  ● Ticket API Integration Tests › POST /tickets/:id/reserve › reserves a ticket
+
+    Expected HTTP 201, received 500.
+    Response body: {}
+    Response text: <!DOCTYPE html>
+    <html lang="en">
+    <head>
+    <meta charset="utf-8">
+    <title>Error</title>
+    </head>
+    <body>
+    <pre>TypeError: Cannot read properties of undefined (reading &#39;execute&#39;)<br> &nbsp; &nbsp;at TicketController.&lt;anonymous&gt; (C:\Users\rowla\conference-management\src\conference-management\ticket\api\ticket.controller.js:43:56)<br> &nbsp; &nbsp;at Generator.call (C:\Users\rowla\conference-management\src\conference-management\ticket\api\ticket.controller.js:2:1)<br> &nbsp; &nbsp;at Generator._invoke [as next] (C:\Users\rowla\conference-management\src\conference-management\ticket\api\ticket.controller.js:2:1)<br> &nbsp; &nbsp;at asyncGeneratorStep (C:\Users\rowla\conference-management\src\conference-management\ticket\api\ticket.controller.js:2:1)<br> &nbsp; &nbsp;at asyncGeneratorStep (C:\Users\rowla\conference-management\src\conference-management\ticket\api\ticket.controller.js:2:1)<br> &nbsp; &nbsp;at _next (C:\Users\rowla\conference-management\src\conference-management\ticket\api\ticket.controller.js:2:1)<br> &nbsp; &nbsp;at new Promise (&lt;anonymous&gt;)<br> &nbsp; &nbsp;at TicketController.&lt;anonymous&gt; (C:\Users\rowla\conference-management\src\conference-management\ticket\api\ticket.controller.js:2:1)<br> &nbsp; &nbsp;at TicketController.apply [as createTicket] (C:\Users\rowla\conference-management\src\conference-management\ticket\api\ticket.controller.js:38:21)<br> &nbsp; &nbsp;at call (C:\Users\rowla\conference-management\src\conference-management\ticket\api\ticket.route.js:57:30)<br> &nbsp; &nbsp;at Layer.handleRequest (C:\Users\rowla\conference-management\node_modules\router\lib\layer.js:152:17)<br> &nbsp; &nbsp;at next (C:\Users\rowla\conference-management\node_modules\router\lib\route.js:157:13)<br> &nbsp; &nbsp;at next (C:\Users\rowla\conference-management\src\shared\infrastructure\middleware\validate.js:28:13)<br> &nbsp; &nbsp;at Layer.handleRequest (C:\Users\rowla\conference-management\node_modules\router\lib\layer.js:152:17)<br> &nbsp; &nbsp;at next (C:\Users\rowla\conference-management\node_modules\router\lib\route.js:157:13)<br> &nbsp; &nbsp;at next (C:\Users\rowla\conference-management\src\shared\infrastructure\middleware\idempotency.js:24:5)<br> &nbsp; &nbsp;at Layer.handleRequest (C:\Users\rowla\conference-management\node_modules\router\lib\layer.js:152:17)<br> &nbsp; &nbsp;at next (C:\Users\rowla\conference-management\node_modules\router\lib\route.js:157:13)<br> &nbsp; &nbsp;at Route.dispatch (C:\Users\rowla\conference-management\node_modules\router\lib\route.js:117:3)<br> &nbsp; &nbsp;at handle (C:\Users\rowla\conference-management\node_modules\router\index.js:435:11)<br> &nbsp; &nbsp;at Layer.handleRequest (C:\Users\rowla\conference-management\node_modules\router\lib\layer.js:152:17)<br> &nbsp; &nbsp;at C:\Users\rowla\conference-management\node_modules\router\index.js:295:15<br> &nbsp; &nbsp;at processParams (C:\Users\rowla\conference-management\node_modules\router\index.js:582:12)<br> &nbsp; &nbsp;at next (C:\Users\rowla\conference-management\node_modules\router\index.js:291:5)<br> &nbsp; &nbsp;at next (C:\Users\rowla\conference-management\src\conference-management\authentication\presentation\middleware\authenticate.js:43:20)<br> &nbsp; &nbsp;at Generator.call (C:\Users\rowla\conference-management\src\conference-management\authentication\presentation\middleware\authenticate.js:2:1)<br> &nbsp; &nbsp;at Generator._invoke [as next] (C:\Users\rowla\conference-management\src\conference-management\authentication\presentation\middleware\authenticate.js:2:1)<br> &nbsp; &nbsp;at asyncGeneratorStep (C:\Users\rowla\conference-management\src\conference-management\authentication\presentation\middleware\authenticate.js:2:1)<br> &nbsp; &nbsp;at asyncGeneratorStep (C:\Users\rowla\conference-management\src\conference-management\authentication\presentation\middleware\authenticate.js:2:1)<br> &nbsp; &nbsp;at processTicksAndRejections (node:internal/process/task_queues:103:5)</pre>
+    </body>
+    </html>
+
+    [0m [90m 31 |[39m     [36mconst[39m expectSuccess [33m=[39m (response[33m,[39m expectedStatus) [33m=>[39m {
+     [90m 32 |[39m         [36mif[39m (response[33m.[39mstatusCode [33m!==[39m expectedStatus) {
+    [31m[1m>[22m[39m[90m 33 |[39m             [36mthrow[39m [36mnew[39m [33mError[39m(
+     [90m    |[39m                   [31m[1m^[22m[39m
+     [90m 34 |[39m                 [
+     [90m 35 |[39m                     [32m`Expected HTTP ${expectedStatus}, received ${response.statusCode}.`[39m[33m,[39m
+     [90m 36 |[39m                     [32m`Response body: ${JSON.stringify(response.body)}`[39m[33m,[39m[0m
+
+      at expectSuccess (test/api/ticket.test.js:33:19)
+      at expectSuccess (test/api/ticket.test.js:50:9)
+      at Generator.call (test/api/ticket.test.js:2:1)
+      at Generator._invoke [as next] (test/api/ticket.test.js:2:1)
+      at asyncGeneratorStep (test/api/ticket.test.js:2:1)
+      at asyncGeneratorStep (test/api/ticket.test.js:2:1)
+
+  ● Ticket API Integration Tests › POST /tickets/:id/cancel › cancels a ticket
+
+    Expected HTTP 201, received 500.
+    Response body: {}
+    Response text: <!DOCTYPE html>
+    <html lang="en">
+    <head>
+    <meta charset="utf-8">
+    <title>Error</title>
+    </head>
+    <body>
+    <pre>TypeError: Cannot read properties of undefined (reading &#39;execute&#39;)<br> &nbsp; &nbsp;at TicketController.&lt;anonymous&gt; (C:\Users\rowla\conference-management\src\conference-management\ticket\api\ticket.controller.js:43:56)<br> &nbsp; &nbsp;at Generator.call (C:\Users\rowla\conference-management\src\conference-management\ticket\api\ticket.controller.js:2:1)<br> &nbsp; &nbsp;at Generator._invoke [as next] (C:\Users\rowla\conference-management\src\conference-management\ticket\api\ticket.controller.js:2:1)<br> &nbsp; &nbsp;at asyncGeneratorStep (C:\Users\rowla\conference-management\src\conference-management\ticket\api\ticket.controller.js:2:1)<br> &nbsp; &nbsp;at asyncGeneratorStep (C:\Users\rowla\conference-management\src\conference-management\ticket\api\ticket.controller.js:2:1)<br> &nbsp; &nbsp;at _next (C:\Users\rowla\conference-management\src\conference-management\ticket\api\ticket.controller.js:2:1)<br> &nbsp; &nbsp;at new Promise (&lt;anonymous&gt;)<br> &nbsp; &nbsp;at TicketController.&lt;anonymous&gt; (C:\Users\rowla\conference-management\src\conference-management\ticket\api\ticket.controller.js:2:1)<br> &nbsp; &nbsp;at TicketController.apply [as createTicket] (C:\Users\rowla\conference-management\src\conference-management\ticket\api\ticket.controller.js:38:21)<br> &nbsp; &nbsp;at call (C:\Users\rowla\conference-management\src\conference-management\ticket\api\ticket.route.js:57:30)<br> &nbsp; &nbsp;at Layer.handleRequest (C:\Users\rowla\conference-management\node_modules\router\lib\layer.js:152:17)<br> &nbsp; &nbsp;at next (C:\Users\rowla\conference-management\node_modules\router\lib\route.js:157:13)<br> &nbsp; &nbsp;at next (C:\Users\rowla\conference-management\src\shared\infrastructure\middleware\validate.js:28:13)<br> &nbsp; &nbsp;at Layer.handleRequest (C:\Users\rowla\conference-management\node_modules\router\lib\layer.js:152:17)<br> &nbsp; &nbsp;at next (C:\Users\rowla\conference-management\node_modules\router\lib\route.js:157:13)<br> &nbsp; &nbsp;at next (C:\Users\rowla\conference-management\src\shared\infrastructure\middleware\idempotency.js:24:5)<br> &nbsp; &nbsp;at Layer.handleRequest (C:\Users\rowla\conference-management\node_modules\router\lib\layer.js:152:17)<br> &nbsp; &nbsp;at next (C:\Users\rowla\conference-management\node_modules\router\lib\route.js:157:13)<br> &nbsp; &nbsp;at Route.dispatch (C:\Users\rowla\conference-management\node_modules\router\lib\route.js:117:3)<br> &nbsp; &nbsp;at handle (C:\Users\rowla\conference-management\node_modules\router\index.js:435:11)<br> &nbsp; &nbsp;at Layer.handleRequest (C:\Users\rowla\conference-management\node_modules\router\lib\layer.js:152:17)<br> &nbsp; &nbsp;at C:\Users\rowla\conference-management\node_modules\router\index.js:295:15<br> &nbsp; &nbsp;at processParams (C:\Users\rowla\conference-management\node_modules\router\index.js:582:12)<br> &nbsp; &nbsp;at next (C:\Users\rowla\conference-management\node_modules\router\index.js:291:5)<br> &nbsp; &nbsp;at next (C:\Users\rowla\conference-management\src\conference-management\authentication\presentation\middleware\authenticate.js:43:20)<br> &nbsp; &nbsp;at Generator.call (C:\Users\rowla\conference-management\src\conference-management\authentication\presentation\middleware\authenticate.js:2:1)<br> &nbsp; &nbsp;at Generator._invoke [as next] (C:\Users\rowla\conference-management\src\conference-management\authentication\presentation\middleware\authenticate.js:2:1)<br> &nbsp; &nbsp;at asyncGeneratorStep (C:\Users\rowla\conference-management\src\conference-management\authentication\presentation\middleware\authenticate.js:2:1)<br> &nbsp; &nbsp;at asyncGeneratorStep (C:\Users\rowla\conference-management\src\conference-management\authentication\presentation\middleware\authenticate.js:2:1)<br> &nbsp; &nbsp;at processTicksAndRejections (node:internal/process/task_queues:103:5)</pre>
+    </body>
+    </html>
+
+    [0m [90m 31 |[39m     [36mconst[39m expectSuccess [33m=[39m (response[33m,[39m expectedStatus) [33m=>[39m {
+     [90m 32 |[39m         [36mif[39m (response[33m.[39mstatusCode [33m!==[39m expectedStatus) {
+    [31m[1m>[22m[39m[90m 33 |[39m             [36mthrow[39m [36mnew[39m [33mError[39m(
+     [90m    |[39m                   [31m[1m^[22m[39m
+     [90m 34 |[39m                 [
+     [90m 35 |[39m                     [32m`Expected HTTP ${expectedStatus}, received ${response.statusCode}.`[39m[33m,[39m
+     [90m 36 |[39m                     [32m`Response body: ${JSON.stringify(response.body)}`[39m[33m,[39m[0m
+
+      at expectSuccess (test/api/ticket.test.js:33:19)
+      at expectSuccess (test/api/ticket.test.js:50:9)
+      at Generator.call (test/api/ticket.test.js:2:1)
+      at Generator._invoke [as next] (test/api/ticket.test.js:2:1)
+      at asyncGeneratorStep (test/api/ticket.test.js:2:1)
+      at asyncGeneratorStep (test/api/ticket.test.js:2:1)
+
+{"level":30,"time":1792318827242,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Authentication module initialized"}
+{"level":30,"time":1792318827263,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Conference management modules initialized"}
+  console.log
+    { module: 'authentication', basePath: undefined, hasRouter: true }
+
+      at log (src/boostrap/routes.js:31:13)
+
+{"level":30,"time":1792318827264,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Module router registered."}
+{"level":40,"time":1792318827265,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Module has no HTTP routes."}
+  console.log
+    { module: 'registration', basePath: '/registrations', hasRouter: true }
+
+      at log (src/boostrap/routes.js:31:13)
+
+{"level":30,"time":1792318827265,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Module router registered."}
+  console.log
+    { module: undefined, basePath: undefined, hasRouter: true }
+
+      at log (src/boostrap/routes.js:31:13)
+
+{"level":30,"time":1792318827267,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Module router registered."}
+  console.log
+    { module: 'ticket', basePath: '/tickets', hasRouter: true }
+
+      at log (src/boostrap/routes.js:31:13)
+
+{"level":30,"time":1792318827269,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Module router registered."}
+{"level":30,"time":1792318827360,"pid":18048,"hostname":"DESKTOP-LB92A35","useCase":"CreateRegistrationUseCase","userId":"22222222-2222-2222-2222-222222222222","ticketType":"standard","correlationId":"43effcb7-c1ba-40b1-814e-ccd267b6a78e","causationId":null,"msg":"Creating registration"}
+{"level":30,"time":1792318827367,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Redis connected."}
+{"level":30,"time":1792318827614,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Redis ready."}
+{"level":50,"time":1792318834945,"pid":18048,"hostname":"DESKTOP-LB92A35","useCase":"CreateRegistrationUseCase","userId":"22222222-2222-2222-2222-222222222222","error":"Undefined binding(s) detected when compiling FIRST. Undefined column(s): [id] query: select * from \"conferences\" where \"id\" = ? limit ? for update","stack":"Error: Undefined binding(s) detected when compiling FIRST. Undefined column(s): [id] query: select * from \"conferences\" where \"id\" = ? limit ? for update\n    at QueryCompiler_PG.toSQL (C:\\Users\\rowla\\conference-management\\node_modules\\knex\\lib\\query\\querycompiler.js:161:13)\n    at QueryBuilder_PostgreSQL.toSQL (C:\\Users\\rowla\\conference-management\\node_modules\\knex\\lib\\query\\querybuilder.js:84:44)\n    at ensureConnectionCallback (C:\\Users\\rowla\\conference-management\\node_modules\\knex\\lib\\execution\\internal\\ensure-connection-callback.js:4:30)\n    at Runner.ensureConnection (C:\\Users\\rowla\\conference-management\\node_modules\\knex\\lib\\execution\\runner.js:324:20)\n    at processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at Runner.run (C:\\Users\\rowla\\conference-management\\node_modules\\knex\\lib\\execution\\runner.js:30:19)","correlationId":"43effcb7-c1ba-40b1-814e-ccd267b6a78e","causationId":null,"msg":"Failed to create registration"}
+{"level":50,"time":1792318834946,"pid":18048,"hostname":"DESKTOP-LB92A35","error":{},"body":{"eventId":"550e8400-e29b-41d4-a716-446655440000","ticketType":"standard"},"userId":"22222222-2222-2222-2222-222222222222","correlationId":"43effcb7-c1ba-40b1-814e-ccd267b6a78e","causationId":null,"msg":"Registration creation failed"}
+  console.log
+    Registration status: 500
+
+      at log (test/api/registration.test.js:48:17)
+
+  console.log
+    Registration content type: text/html; charset=utf-8
+
+      at log (test/api/registration.test.js:49:17)
+
+  console.log
+    Registration response text: <!DOCTYPE html>
+    <html lang="en">
+    <head>
+    <meta charset="utf-8">
+    <title>Error</title>
+    </head>
+    <body>
+    <pre>Error: Undefined binding(s) detected when compiling FIRST. Undefined column(s): [id] query: select * from &quot;conferences&quot; where &quot;id&quot; = ? limit ? for update<br> &nbsp; &nbsp;at QueryCompiler_PG.toSQL (C:\Users\rowla\conference-management\node_modules\knex\lib\query\querycompiler.js:161:13)<br> &nbsp; &nbsp;at QueryBuilder_PostgreSQL.toSQL (C:\Users\rowla\conference-management\node_modules\knex\lib\query\querybuilder.js:84:44)<br> &nbsp; &nbsp;at ensureConnectionCallback (C:\Users\rowla\conference-management\node_modules\knex\lib\execution\internal\ensure-connection-callback.js:4:30)<br> &nbsp; &nbsp;at Runner.ensureConnection (C:\Users\rowla\conference-management\node_modules\knex\lib\execution\runner.js:324:20)<br> &nbsp; &nbsp;at processTicksAndRejections (node:internal/process/task_queues:103:5)<br> &nbsp; &nbsp;at Runner.run (C:\Users\rowla\conference-management\node_modules\knex\lib\execution\runner.js:30:19)</pre>
+    </body>
+    </html>
+
+      at log (test/api/registration.test.js:53:17)
+
+  console.log
+    Registration response body: {}
+
+      at log (test/api/registration.test.js:54:17)
+
+FAIL test/api/registration.test.js (9.441 s)
+  Registration API Integration Tests
+    × POST /registrations creates a registration (7696 ms)
+
+  ● Registration API Integration Tests › POST /registrations creates a registration
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 201
+    Received: 500
+
+    [0m [90m 57 |[39m         )[33m;[39m
+     [90m 58 |[39m
+    [31m[1m>[22m[39m[90m 59 |[39m         expect(response[33m.[39mstatus)[33m.[39mtoBe([35m201[39m)[33m;[39m
+     [90m    |[39m                                 [31m[1m^[22m[39m
+     [90m 60 |[39m         expect(response[33m.[39mbody)[33m.[39mtoBeDefined()[33m;[39m
+     [90m 61 |[39m     })[33m;[39m
+     [90m 62 |[39m })[33m;[39m[0m
+
+      at toBe (test/api/registration.test.js:59:33)
+      at Generator.call (test/api/registration.test.js:2:1)
+      at Generator._invoke [as next] (test/api/registration.test.js:2:1)
+      at asyncGeneratorStep (test/api/registration.test.js:2:1)
+      at asyncGeneratorStep (test/api/registration.test.js:2:1)
+
+{"level":30,"time":1792318836471,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Authentication module initialized"}
+{"level":30,"time":1792318836626,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Conference management modules initialized"}
+  console.log
+    { module: 'authentication', basePath: undefined, hasRouter: true }
+
+      at log (src/boostrap/routes.js:31:13)
+
+{"level":30,"time":1792318836629,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Module router registered."}
+{"level":40,"time":1792318836629,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Module has no HTTP routes."}
+  console.log
+    { module: 'registration', basePath: '/registrations', hasRouter: true }
+
+      at log (src/boostrap/routes.js:31:13)
+
+{"level":30,"time":1792318836635,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Module router registered."}
+  console.log
+    { module: undefined, basePath: undefined, hasRouter: true }
+
+      at log (src/boostrap/routes.js:31:13)
+
+{"level":30,"time":1792318836638,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Module router registered."}
+  console.log
+    { module: 'ticket', basePath: '/tickets', hasRouter: true }
+
+      at log (src/boostrap/routes.js:31:13)
+
+{"level":30,"time":1792318836640,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Module router registered."}
+{"level":30,"time":1792318836718,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Redis connected."}
+PASS test/api/health.test.js
+  Health Endpoint
+    √ GET /health returns 200 (89 ms)
+
+{"level":30,"time":1792318838125,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Authentication module initialized"}
+{"level":30,"time":1792318838167,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Conference management modules initialized"}
+  console.log
+    { module: 'authentication', basePath: undefined, hasRouter: true }
+
+      at log (src/boostrap/routes.js:31:13)
+
+{"level":30,"time":1792318838168,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Module router registered."}
+{"level":40,"time":1792318838168,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Module has no HTTP routes."}
+  console.log
+    { module: 'registration', basePath: '/registrations', hasRouter: true }
+
+      at log (src/boostrap/routes.js:31:13)
+
+{"level":30,"time":1792318838169,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Module router registered."}
+  console.log
+    { module: undefined, basePath: undefined, hasRouter: true }
+
+      at log (src/boostrap/routes.js:31:13)
+
+{"level":30,"time":1792318838171,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Module router registered."}
+  console.log
+    { module: 'ticket', basePath: '/tickets', hasRouter: true }
+
+      at log (src/boostrap/routes.js:31:13)
+
+{"level":30,"time":1792318838172,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Module router registered."}
+{"level":30,"time":1792318838190,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Redis connected."}
+{"level":30,"time":1792318838193,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Stopping application lifecycle..."}
+{"level":30,"time":1792318838193,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Ticket module stopped."}
+{"level":30,"time":1792318838193,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Conference Registration sub-module stopped."}
+{"level":30,"time":1792318838193,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Stopping Conference Event Schedule Outbox Worker..."}
+{"level":30,"time":1792318838193,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"[OutboxWorker] Stopped."}
+{"level":30,"time":1792318838193,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"[OutboxWorker] Stopped."}
+{"level":30,"time":1792318838193,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Outbox worker stopped."}
+{"level":30,"time":1792318838193,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Event bus stopped."}
+{"level":30,"time":1792318838193,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Kafka connection closed."}
+{"level":30,"time":1792318838193,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Application stopped successfully."}
+PASS test/api/payment.test.js
+  Payment API
+    √ POST /api/accounting/payments creates a payment (19 ms)
+
+FAIL test/api/conference.test.js
+  ● Test suite failed to run
+
+    Your test suite must contain at least one test.
+
+      at onResult (node_modules/@jest/core/build/index.js:1054:18)
+      at node_modules/@jest/core/build/index.js:1125:165
+      at node_modules/emittery/index.js:363:13
+          at Array.map (<anonymous>)
+      at Emittery.emit (node_modules/emittery/index.js:361:23)
+
+PASS test/unit/accounting-services/invoice/application/use_cases/GetInvoiceUseCase.test.js
+  GetInvoiceUseCase
+    constructor
+      √ should require invoiceRepository (84 ms)
+    execute
+      √ should return an invoice when it exists (6 ms)
+      √ should trim the invoice ID before querying the repository (1 ms)
+      √ should throw InvoiceNotFoundError when invoice does not exist (2 ms)
+      √ should include the invoice ID in the not-found error (2 ms)
+      √ should expose statusCode 404 for not-found errors (2 ms)
+      √ should reject a missing invoice ID (2 ms)
+      √ should reject an empty invoice ID (1 ms)
+      √ should reject a whitespace-only invoice ID (2 ms)
+      √ should reject a non-string invoice ID (3 ms)
+      √ should pass the transaction to the repository (1 ms)
+
+{"level":30,"time":1792318839299,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Redis ready."}
+PASS test/unit/accounting-services/invoice/application/use_cases/ListInvoicesUseCase.test.js
+  ListInvoicesUseCase
+    constructor
+      √ should require invoiceRepository (252 ms)
+    execute
+      √ should return invoices from the repository (4 ms)
+      √ should pass filters to the repository (1 ms)
+      √ should calculate the correct offset (1 ms)
+      √ should use the requested page and limit in the response (2 ms)
+      √ should pass sort options to the repository (1 ms)
+      √ should normalize sort order to lowercase (1 ms)
+      √ should pass the transaction to the repository (2 ms)
+      √ should reject a page less than 1 (2 ms)
+      √ should reject a non-integer page (2 ms)
+      √ should reject a limit greater than 100 (2 ms)
+      √ should reject an invalid sort order (2 ms)
+      √ should return an empty list when no invoices exist (2 ms)
+      √ should calculate totalPages when repository does not provide it (1 ms)
+
+PASS test/unit/accounting-services/invoice/application/services/InvoiceService.test.js
+  InvoiceService
+    create()
+      √ delegates to CreateInvoiceUseCase (3 ms)
+    issue()
+      √ delegates to IssueInvoiceUseCase (1 ms)
+    cancel()
+      √ delegates to CancelInvoiceUseCase (1 ms)
+    get()
+      √ delegates to GetInvoiceUseCase (1 ms)
+    list()
+      √ delegates to ListInvoicesUseCase (1 ms)
+
+Test Suites: 3 failed, 5 passed, 8 total
+Tests:       5 failed, 32 passed, 37 total
+Snapshots:   0 total
+Time:        60.614 s
+Ran all test suites.
+{"level":30,"time":1792318843500,"pid":18048,"hostname":"DESKTOP-LB92A35","msg":"Redis ready."}
+Jest did not exit one second after the test run has completed.
+
+'This usually means that there are asynchronous operations that weren't stopped in your tests. Consider running Jest with `--detectOpenHandles` to troubleshoot this issue.

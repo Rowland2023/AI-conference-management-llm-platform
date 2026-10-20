@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">23.25% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/43</span>
+                <span class='fraction'>10/43</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">25% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/20</span>
+                <span class='fraction'>5/20</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">25% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/4</span>
+                <span class='fraction'>1/4</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">23.25% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/43</span>
+                <span class='fraction'>10/43</span>
             </div>
         
             
@@ -278,29 +278,29 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -459,38 +459,38 @@ export class OutboxWorker {
      * @param {number} [params.batchSize]
      * @param {number} [params.maxRetries]
      */
-<span class="fstat-no" title="function not covered" >    co</span>nstructor({
+    constructor({
         outboxRepository,
         eventBus,
         logger = <span class="branch-0 cbranch-no" title="branch not covered" >console,</span>
-        pollIntervalMs = <span class="branch-0 cbranch-no" title="branch not covered" >3000,</span>
-        batchSize = <span class="branch-0 cbranch-no" title="branch not covered" >100,</span>
-        maxRetries = <span class="branch-0 cbranch-no" title="branch not covered" >5,</span>
+        pollIntervalMs = 3000,
+        batchSize = 100,
+        maxRetries = 5,
     }) {
 &nbsp;
-<span class="cstat-no" title="statement not covered" >        if (!outboxRepository) {</span>
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (!outboxRepository) {
 <span class="cstat-no" title="statement not covered" >            throw new Error(</span>
                 "OutboxWorker requires an outboxRepository."
             );
         }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >        if (!eventBus) {</span>
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (!eventBus) {
 <span class="cstat-no" title="statement not covered" >            throw new Error(</span>
                 "OutboxWorker requires an eventBus."
             );
         }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >        this.outboxRepository = outboxRepository;</span>
-<span class="cstat-no" title="statement not covered" >        this.eventBus = eventBus;</span>
+        this.outboxRepository = outboxRepository;
+        this.eventBus = eventBus;
 &nbsp;
-<span class="cstat-no" title="statement not covered" >        this.logger = logger;</span>
+        this.logger = logger;
 &nbsp;
-<span class="cstat-no" title="statement not covered" >        this.pollIntervalMs = pollIntervalMs;</span>
-<span class="cstat-no" title="statement not covered" >        this.batchSize = batchSize;</span>
-<span class="cstat-no" title="statement not covered" >        this.maxRetries = maxRetries;</span>
+        this.pollIntervalMs = pollIntervalMs;
+        this.batchSize = batchSize;
+        this.maxRetries = maxRetries;
 &nbsp;
-<span class="cstat-no" title="statement not covered" >        this.running = false;</span>
-<span class="cstat-no" title="statement not covered" >        this.timer = null;</span>
+        this.running = false;
+        this.timer = null;
     }
 &nbsp;
     /**
@@ -640,7 +640,7 @@ export class OutboxWorker {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-08-14T22:48:18.627Z
+                at 2026-10-20T09:58:03.016Z
             </div>
         <script src="../../../../../prettify.js"></script>
         <script>

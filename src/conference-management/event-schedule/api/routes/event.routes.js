@@ -1,8 +1,7 @@
+
 // src/conference-management/event-schedule/api/routes/event.routes.js
 
 import { Router } from "express";
-
-import { authenticate } from "../../../authentication/presentation/middleware/authenticate.js";
 
 import { correlationIdMiddleware } from "../../../../shared/infrastructure/middleware/correlationId.js";
 import { validate } from "../../../../shared/infrastructure/middleware/validate.js";
@@ -14,32 +13,47 @@ import {
     rescheduleEventSchema,
 } from "../validators/event.validators.js";
 
-export default function createEventRouter({ eventController }) {
+export default function createEventRouter({
+    eventController,
+    authenticateMiddleware,
+}) {
+    if (!eventController) {
+        throw new Error(
+            "createEventRouter: 'eventController' is required.",
+        );
+    }
+
+    if (typeof authenticateMiddleware !== "function") {
+        throw new TypeError(
+            "createEventRouter: 'authenticateMiddleware' must be a function.",
+        );
+    }
+
     const router = Router();
 
     // Cross-cutting middleware
     router.use(correlationIdMiddleware);
-    router.use(authenticate);
+    router.use(authenticateMiddleware);
 
     // Commands
 
     router.post(
         "/",
         validate(createEventSchema, "body"),
-        eventController.createEvent
+        eventController.createEvent,
     );
 
     router.patch(
         "/:id/reschedule",
         validate(eventIdSchema, "params"),
         validate(rescheduleEventSchema, "body"),
-        eventController.rescheduleEvent
+        eventController.rescheduleEvent,
     );
 
     router.delete(
         "/:id",
         validate(eventIdSchema, "params"),
-        eventController.cancelEvent
+        eventController.cancelEvent,
     );
 
     // Queries
@@ -47,13 +61,13 @@ export default function createEventRouter({ eventController }) {
     router.get(
         "/",
         validate(eventQuerySchema, "query"),
-        eventController.listEvents
+        eventController.listEvents,
     );
 
     router.get(
         "/:id",
         validate(eventIdSchema, "params"),
-        eventController.getEventById
+        eventController.getEventById,
     );
 
     return router;

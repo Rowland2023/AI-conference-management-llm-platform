@@ -1,6 +1,5 @@
-// src/conference-management/registration/index.js
 
-import { PostgresOutboxRepository } from "../../shared/Infrastructure/messaging/outbox/PostgresOutboxRepository.js";
+import { randomUUID } from "node:crypto";
 
 import { RegistrationRepository } from "./infrastructure/repositories/RegistrationRepository.js";
 import { ConferenceRepository } from "./infrastructure/repositories/ConferenceRepository.js";
@@ -16,215 +15,111 @@ import { RegistrationController } from "./api/registration.controller.js";
 import { getRegistrationRoutes } from "./api/registration.route.js";
 
 export function createConferenceRegistrationSubModule({
-    db,
-    unitOfWorkFactory,
-    eventBus,
-    logger,
+  db,
+  unitOfWorkFactory,
+  outboxRepository,
+  logger,
+  authenticateMiddleware,
 }) {
+  if (typeof db !== "function") {
+    throw new TypeError(
+      "Registration module requires a Knex database client."
+    );
+  }
 
-    //----------------------------------------------------------
-    // Fail Fast Dependency Validation
-    //----------------------------------------------------------
+  if (typeof unitOfWorkFactory !== "function") {
+    throw new TypeError(
+      "Registration module requires unitOfWorkFactory."
+    );
+  }
 
-    if (!db)
-        throw new Error(
-            "ConferenceRegistrationSubModule: 'db' is required."
-        );
+  if (!outboxRepository) {
+    throw new TypeError(
+      "Registration module requires the shared outboxRepository."
+    );
+  }
 
-    if (!unitOfWorkFactory)
-        throw new Error(
-            "ConferenceRegistrationSubModule: 'unitOfWorkFactory' is required."
-        );
+  if (typeof authenticateMiddleware !== "function") {
+    throw new TypeError(
+      "Registration module requires authenticateMiddleware."
+    );
+  }
 
-    if (!eventBus)
-        throw new Error(
-            "ConferenceRegistrationSubModule: 'eventBus' is required."
-        );
+  const transactionManager = unitOfWorkFactory();
 
-    if (!logger)
-        throw new Error(
-            "ConferenceRegistrationSubModule: 'logger' is required."
-        );
+  if (
+    typeof transactionManager?.runInTransaction !== "function"
+  ) {
+    throw new TypeError(
+      "Registration transaction manager must implement runInTransaction()."
+    );
+  }
 
-    //----------------------------------------------------------
-    // Transaction Scope
-    //----------------------------------------------------------
+  const registrationRepository = new RegistrationRepository(db);
+  const conferenceRepository = new ConferenceRepository({ db });
 
-    const uow = unitOfWorkFactory();
+  const uuidService = {
+    generate: () => randomUUID(),
+  };
 
-    //----------------------------------------------------------
-    // Repositories
-    //----------------------------------------------------------
+  const createRegistrationUseCase = new CreateRegistrationUseCase({
+    registrationRepository,
+    conferenceRepository,
+    outboxRepository,
+    uuidService,
+    transactionManager,
+    logger,
+  });
 
-    const registrationRepository =
-        new RegistrationRepository({
-            uow,
-        });
+  const getRegistrationUseCase = new GetRegistrationUseCase({
+    registrationRepository,
+    conferenceRepository,
+  });
 
-    const conferenceRepository =
-        new ConferenceRepository({
-            uow,
-        });
+  const getAllRegistrationsUseCase = new GetAllRegistrationsUseCase({
+    registrationRepository,
+    conferenceRepository,
+  });
 
-    const outboxRepository =
-        new PostgresOutboxRepository({
-            db,
-        });
+  const updateRegistrationUseCase = new UpdateRegistrationUseCase({
+    registrationRepository,
+    conferenceRepository,
+    outboxRepository,
+    transactionManager,
+  });
 
-    //----------------------------------------------------------
-    // Application Services
-    //----------------------------------------------------------
+  const cancelRegistrationUseCase = new CancelRegistrationUseCase({
+    registrationRepository,
+    conferenceRepository,
+    outboxRepository,
+    transactionManager,
+  });
 
-    const createRegistrationUseCase =
-        new CreateRegistrationUseCase({
-            registrationRepository,
-            conferenceRepository,
-            outboxRepository,
-            uow,
-            logger,
-        });
+  const checkInRegistrationUseCase = new CheckInRegistrationUseCase({
+    registrationRepository,
+    conferenceRepository,
+    outboxRepository,
+    transactionManager,
+  });
 
-    const getRegistrationUseCase =
-        new GetRegistrationUseCase({
-            registrationRepository,
-            logger,
-        });
+  const controller = new RegistrationController({
+    createRegistrationUseCase,
+    getRegistrationUseCase,
+    getAllRegistrationsUseCase,
+    updateRegistrationUseCase,
+    cancelRegistrationUseCase,
+    checkInRegistrationUseCase,
+    logger,
+  });
 
-    const getAllRegistrationsUseCase =
-        new GetAllRegistrationsUseCase({
-            registrationRepository,
-            logger,
-        });
+  const router = getRegistrationRoutes(
+    controller,
+    authenticateMiddleware
+  );
 
-    const updateRegistrationUseCase =
-        new UpdateRegistrationUseCase({
-            registrationRepository,
-            outboxRepository,
-            uow,
-            logger,
-        });
-
-    const cancelRegistrationUseCase =
-        new CancelRegistrationUseCase({
-            registrationRepository,
-            outboxRepository,
-            uow,
-            logger,
-        });
-
-    const checkInRegistrationUseCase =
-        new CheckInRegistrationUseCase({
-            registrationRepository,
-            outboxRepository,
-            uow,
-            logger,
-        });
-
-    //----------------------------------------------------------
-// Presentation
-//----------------------------------------------------------
-
-const registrationController =
-    new RegistrationController({
-        createRegistrationUseCase,
-        getRegistrationUseCase,
-        getAllRegistrationsUseCase,
-        updateRegistrationUseCase,
-        cancelRegistrationUseCase,
-        checkInRegistrationUseCase,
-        logger,
-    });
-
-    const router =
-    getRegistrationRoutes(registrationController);
-
-    //----------------------------------------------------------
-    // Integration
-    //----------------------------------------------------------
-
-    let subscriptionToken = null;
-
-    return {
-
+  return {
     name: "registration",
-
-    basePath: "/registrations",
-
+    basePath: "/api/v1/registrations",
     router,
-
-    subscribe() {
-
-        subscriptionToken =
-            eventBus.subscribe(
-                "conference.deleted",
-                async (evt) => {
-
-                    const {
-                        conferenceId,
-                        correlationId,
-                    } = evt ?? {};
-
-                    if (!conferenceId) {
-
-                        logger.warn(
-                            "Received conference.deleted without conferenceId.",
-                            { evt }
-                        );
-
-                        return;
-                    }
-
-                    try {
-
-                        await cancelRegistrationUseCase.execute({
-                            conferenceId,
-                            reason: "CONFERENCE_CANCELLED",
-                            correlationId,
-                        });
-
-                    } catch (err) {
-
-                        logger.error(
-                            "Failed to process conference.deleted event.",
-                            {
-                                err,
-                                conferenceId,
-                                correlationId,
-                            }
-                        );
-
-                    }
-                }
-            );
-
-    },
-
-    async start() {
-
-        logger.info(
-            "Conference Registration sub-module initialized."
-        );
-
-    },
-
-    async stop() {
-
-        if (
-            subscriptionToken &&
-            typeof eventBus.unsubscribe === "function"
-        ) {
-            eventBus.unsubscribe(
-                "conference.deleted",
-                subscriptionToken
-            );
-        }
-
-        logger.info(
-            "Conference Registration sub-module stopped."
-        );
-
-    },
-
-};
-
+  };
 }

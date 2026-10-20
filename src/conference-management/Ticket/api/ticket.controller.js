@@ -1,143 +1,128 @@
-// src/modules/ticket/api/ticket.controller.js
-export class TicketController {
-  #createTicketUseCase;
-  #getTicketUseCase;
-  #listTicketsUseCase;
-  #reserveTicketUseCase;
-  #releaseTicketUseCase;
-  #cancelTicketUseCase;
 
-  constructor({
-    createTicketUseCase,
-    getTicketUseCase,
-    listTicketsUseCase,
-    reserveTicketUseCase,
-    releaseTicketUseCase,
-    cancelTicketUseCase
-  }) {
-    this.#createTicketUseCase = createTicketUseCase;
-    this.#getTicketUseCase = getTicketUseCase;
-    this.#listTicketsUseCase = listTicketsUseCase;
-    this.#reserveTicketUseCase = reserveTicketUseCase;
-    this.#releaseTicketUseCase = releaseTicketUseCase;
-    this.#cancelTicketUseCase = cancelTicketUseCase;
+export class TicketController {
+  constructor({ ticketCommandService, ticketQueryService }) {
+    if (!ticketCommandService || !ticketQueryService) {
+      throw new Error(
+        "TicketController requires command and query services."
+      );
+    }
+
+    this.ticketCommandService = ticketCommandService;
+    this.ticketQueryService = ticketQueryService;
   }
 
-  /**
-   * Extracts tracing and idempotency context from HTTP request.
-   * Used by all mutating operations for audit trail + duplicate prevention.
-   */
-  #getTracingContext(req) {
+  getTracingContext(req) {
     return {
-      correlationId: req.headers['x-correlation-id'] || req.headers['correlation-id'] || null,
-      idempotencyKey: req.headers['idempotency-key'] || null,
-      userId: req.user?.id || null
+      correlationId:
+        req.headers["x-correlation-id"] ??
+        req.headers["correlation-id"] ??
+        req.correlationId ??
+        null,
+      idempotencyKey: req.headers["idempotency-key"] ?? null,
+      userId: req.user?.id ?? null,
     };
   }
 
-  async createTicket(req, res, next) {
+  createTicket = async (req, res, next) => {
     try {
-      const { correlationId, idempotencyKey } = this.#getTracingContext(req);
-      const { conferenceId, type, price, currency, quantity } = req.body;
-
-      const ticketDto = await this.#createTicketUseCase.execute({
-        conferenceId,
-        type,
-        price,
-        currency,
-        quantity,
-        correlationId,
-        idempotencyKey
+      const context = this.getTracingContext(req);
+      const ticket = await this.ticketCommandService.createTicket({
+        ...req.body,
+        ...context,
       });
 
-      return res.status(201).json({ success: true, data: ticketDto });
+      return res.status(201).json({ success: true, data: ticket });
     } catch (error) {
-      next(error);
+      return next(error);
     }
-  }
+  };
 
-  async getTicketById(req, res, next) {
+  getTicketById = async (req, res, next) => {
     try {
-      const { id } = req.params;
-      const ticketDto = await this.#getTicketUseCase.execute({ id });
+      const ticket = await this.ticketQueryService.getById(
+        req.params.id,
+        this.getTracingContext(req)
+      );
 
-      if (!ticketDto) {
-        return res.status(404).json({ success: false, message: "Ticket not found." });
+      return res.status(200).json({ success: true, data: ticket });
+    } catch (error) {
+      return next(error);
+    }
+  };
+
+  listTickets = async (req, res, next) => {
+    try {
+      const result = await this.ticketQueryService.list({
+        ...req.query,
+        ...this.getTracingContext(req),
+      });
+
+      return res.status(200).json({
+        success: true,
+        data: result.items,
+        pagination: result.pagination,
+      });
+    } catch (error) {
+      return next(error);
+    }
+  };
+
+  reserveTicket = async (req, res, next) => {
+    try {
+      const context = this.getTracingContext(req);
+
+      if (!context.userId) {
+        const error = new Error("Authenticated user is required.");
+        error.status = 401;
+        return next(error);
       }
 
-      return res.status(200).json({ success: true, data: ticketDto });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  async listTickets(req, res, next) {
-    try {
-      const { conferenceId } = req.query;
-      const tickets = await this.#listTicketsUseCase.execute({ conferenceId });
-
-      return res.status(200).json({ success: true, data: tickets });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  async reserveTicket(req, res, next) {
-    try {
-      const { id } = req.params;
-      const { correlationId, userId, idempotencyKey } = this.#getTracingContext(req);
-      const { quantity } = req.body;
-
-      const ticketDto = await this.#reserveTicketUseCase.execute({
-        ticketId: id,
-        userId,
-        quantity: parseInt(quantity, 10),
-        correlationId,
-        idempotencyKey
+      const ticket = await this.ticketCommandService.reserveTicket({
+        ticketId: req.params.id,
+        quantity: req.body.quantity,
+        userId: context.userId,
+        correlationId: context.correlationId,
+        idempotencyKey: context.idempotencyKey,
       });
 
-      return res.status(200).json({ success: true, data: ticketDto });
+      return res.status(200).json({ success: true, data: ticket });
     } catch (error) {
-      next(error);
+      return next(error);
     }
-  }
+  };
 
-  async releaseTicket(req, res, next) {
+  releaseTicket = async (req, res, next) => {
     try {
-      const { id } = req.params;
-      const { correlationId, idempotencyKey } = this.#getTracingContext(req);
-      const { quantity } = req.body;
+      const context = this.getTracingContext(req);
 
-      const ticketDto = await this.#releaseTicketUseCase.execute({
-        ticketId: id,
-        quantity: parseInt(quantity, 10),
-        correlationId,
-        idempotencyKey
+      const ticket = await this.ticketCommandService.releaseTicket({
+        ticketId: req.params.id,
+        quantity: req.body.quantity,
+        correlationId: context.correlationId,
+        idempotencyKey: context.idempotencyKey,
       });
 
-      return res.status(200).json({ success: true, data: ticketDto });
+      return res.status(200).json({ success: true, data: ticket });
     } catch (error) {
-      next(error);
+      return next(error);
     }
-  }
+  };
 
-  async cancelTicket(req, res, next) {
+  cancelTicket = async (req, res, next) => {
     try {
-      const { id } = req.params;
-      const { correlationId, userId, idempotencyKey } = this.#getTracingContext(req);
-      const { reason } = req.body;
+      const context = this.getTracingContext(req);
 
-      const ticketDto = await this.#cancelTicketUseCase.execute({
-        ticketId: id,
-        userId,
-        reason,
-        correlationId,
-        idempotencyKey
+      const ticket = await this.ticketCommandService.cancelTicket({
+        ticketId: req.params.id,
+        reason: req.body.reason,
+        correlationId: context.correlationId,
+        userId: context.userId,
+        idempotencyKey: context.idempotencyKey,
       });
 
-      return res.status(200).json({ success: true, data: ticketDto });
+      return res.status(200).json({ success: true, data: ticket });
     } catch (error) {
-      next(error);
+      return next(error);
     }
-  }
+  };
 }

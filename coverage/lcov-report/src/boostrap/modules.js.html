@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">60% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/8</span>
+                <span class='fraction'>6/10</span>
             </div>
         
             
@@ -37,16 +37,16 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/1</span>
+                <span class='fraction'>1/1</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">60% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/8</span>
+                <span class='fraction'>6/10</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line medium'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -135,40 +135,31 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -181,58 +172,66 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">// src/bootstrap/modules.js
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">&nbsp;
+import { createConferenceEventScheduleSubModule } from "../conference-management/event-schedule/index.js";
+import { createConferenceRegistrationSubModule } from "../conference-management/registration/index.js";
+import { createAccountingServicesModule } from "../conference-management/accounting-services/index.js";
+import { createTicketModule } from "../conference-management/ticket/index.js";
+import { createAuthenticationModule } from "../conference-management/authentication/index.js";
+import { authenticate as createAuthenticateMiddleware } from "../conference-management/authentication/presentation/middleware/authenticate.js";
+import { JwtTokenIssuer } from "../conference-management/authentication/infrastructure/jwt/JwtIssuer.js";
 &nbsp;
-import { createConferenceEventScheduleSubModule } 
-    from "../conference-management/event-schedule/index.js";
+export function boostrapModules(shared) {
+    const authenticationModule = createAuthenticationModule(shared);
 &nbsp;
-import { createConferenceRegistrationSubModule } 
-    from "../conference-management/registration/index.js";
+    // Reuse the same JWT configuration as the authentication module.
+    const tokenIssuer = new JwtTokenIssuer({
+        secret: shared.config.security.jwt.secret,
+        issuer: shared.config.security.jwt.issuer,
+        audience: shared.config.security.jwt.audience,
+    });
 &nbsp;
-import { createAccountingServicesModule } 
-    from "../conference-management/accounting-services/index.js";
-&nbsp;
-import { createTicketModule } 
-    from "../conference-management/ticket/index.js";
-&nbsp;
-import { createAuthenticationModule }
-    from "../conference-management/authentication/index.js";
-&nbsp;
-export function <span class="fstat-no" title="function not covered" >boostrapModules(</span>shared) {
-&nbsp;
-    const authenticationModule =
-<span class="cstat-no" title="statement not covered" >        createAuthenticationModule(shared);</span>
+    const authenticateMiddleware = createAuthenticateMiddleware({
+        tokenVerifier: tokenIssuer,
+        logger: shared.logger,
+    });
 &nbsp;
     const eventScheduleModule =
-<span class="cstat-no" title="statement not covered" >        createConferenceEventScheduleSubModule(shared);</span>
+        createConferenceEventScheduleSubModule(shared);
 &nbsp;
-    const registrationModule =
-<span class="cstat-no" title="statement not covered" >        createConferenceRegistrationSubModule(shared);</span>
+    const registrationModule = createConferenceRegistrationSubModule({
+        ...shared,
+        authenticateMiddleware,
+    });
 &nbsp;
-    const accountingModule =
-<span class="cstat-no" title="statement not covered" >        createAccountingServicesModule(shared);</span>
+    const accountingModule = createAccountingServicesModule(shared);
 &nbsp;
-    const ticketModule =
-<span class="cstat-no" title="statement not covered" >        createTicketModule(shared);</span>
+    const ticketModule = <span class="cstat-no" title="statement not covered" >createTicketModule({</span>
+        ...shared,
+        authenticateMiddleware,
+    });
 &nbsp;
     const modules = <span class="cstat-no" title="statement not covered" >[</span>
-&nbsp;
         authenticationModule,
-&nbsp;
         eventScheduleModule,
-&nbsp;
         registrationModule,
-&nbsp;
         accountingModule,
-&nbsp;
         ticketModule,
-&nbsp;
     ];
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    shared.logger?.info(</span>
@@ -245,18 +244,19 @@ export function <span class="fstat-no" title="function not covered" >boostrapMod
                 "ticket",
             ],
         },
-        "Conference management modules initialized"
+        "Conference management modules initialized",
     );
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    return modules;</span>
-}</pre></td></tr></table></pre>
+}
+&nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
             </div><!-- /wrapper -->
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-08-14T22:48:18.627Z
+                at 2026-10-20T09:58:03.016Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

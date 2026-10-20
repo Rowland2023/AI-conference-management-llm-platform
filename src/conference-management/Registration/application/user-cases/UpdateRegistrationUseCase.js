@@ -1,80 +1,156 @@
-import { NotFoundError, UnauthorizedError, BusinessRuleValidationError } from '../../../../shared/domain/error/DomainErrors.js';
+
+import {
+  NotFoundError,
+  UnauthorizedError,
+  BusinessRuleValidationError,
+} from "../../../../shared/domain/error/DomainErrors.js";
 
 export class UpdateRegistrationUseCase {
-  constructor({ registrationRepository, conferenceRepository, outboxRepository, transactionManager }) {
-    this.registrationRepository = registrationRepository;
-    this.conferenceRepository = conferenceRepository;
-    this.outboxRepository = outboxRepository;
-    this.transactionManager = transactionManager;
+  constructor({
+    registrationRepository,
+    conferenceRepository,
+    outboxRepository,
+    transactionManager,
+  }) {
+    Object.assign(this, {
+      registrationRepository,
+      conferenceRepository,
+      outboxRepository,
+      transactionManager,
+    });
   }
 
-  async execute({ registrationId, ticketTier, attendeeNotes } = {}, currentUser) {
+  async execute(input = {}, currentUser, tracingContext = {}) {
+    const registrationId = input.registrationId ?? input.id;
+    const data = input.data ?? input;
+
     if (!registrationId) {
-      throw new NotFoundError("Registration identifier is required.");
+      throw new NotFoundError("Registration id is required.");
+    }
+    if (!currentUser) {
+      throw new UnauthorizedError("Authentication is required.");
     }
 
-    return await this.transactionManager.runInTransaction(async (tx) => {
-      // 1. Lock registration first to serialize concurrent edits
-      const registration = await this.registrationRepository.findByIdForUpdate(registrationId, tx);
+    return this.transactionManager.runInTransaction(async tx => {
+      const registration =
+        await this.registrationRepository.findByIdForUpdate(
+          registrationId,
+          tx
+        );
+
       if (!registration) {
         throw new NotFoundError("Registration not found.");
       }
 
-      // 2. Authorization - blind-wall for attendees and organizers
-      if (!currentUser.isAdmin()) {
-        if (currentUser.isAttendee()) {
+      const isAdmin =
+        typeof currentUser.isAdmin === "function" &&
+        currentUser.isAdmin();
+
+      const isAttendee =
+        typeof currentUser.isAttendee === "function" &&
+        currentUser.isAttendee();
+
+      const isOrganizer =
+        typeof currentUser.isOrganizer === "function" &&
+        currentUser.isOrganizer();
+
+      const requestedTier = data.ticketTier ?? data.ticketType;
+
+      if (!isAdmin) {
+        if (isAttendee) {
           if (registration.userId !== currentUser.id) {
             throw new NotFoundError("Registration not found.");
           }
-          if (ticketTier && ticketTier !== registration.ticketTier) {
-            throw new UnauthorizedError("Attendees cannot modify ticket tiers. Use upgrade workflow.");
+
+          if (
+            requestedTier !== undefined &&
+            String(requestedTier).toUpperCase() !== registration.ticketTier
+          ) {
+            throw new UnauthorizedError(
+              "Attendees cannot change their ticket tier."
+            );
           }
-          if (registration.status === 'CHECKED_IN') {
-            throw new BusinessRuleValidationError("Cannot modify registration after check-in.");
+
+          if (registration.status === "CHECKED_IN") {
+            throw new BusinessRuleValidationError(
+              "Checked-in registrations cannot be changed."
+            );
           }
-        } else if (currentUser.isOrganizer()) {
-          const isOwner = await this.conferenceRepository.isOrganizerOf(registration.conferenceId, currentUser.id, tx);
-          if (!isOwner) {
-            throw new NotFoundError("Registration not found."); // Blind-wall
+        } else if (isOrganizer) {
+          const authorized =
+            await this.conferenceRepository.isOrganizerOf(
+              registration.conferenceId,
+              currentUser.id,
+              tx
+            );
+
+          if (!authorized) {
+            throw new NotFoundError("Registration not found.");
           }
         } else {
-          throw new UnauthorizedError("Invalid execution context.");
+          throw new UnauthorizedError("Unsupported user role.");
         }
       }
 
-      // 3. Lock conference for capacity checks
-      const conference = await this.conferenceRepository.findByIdWithLock(registration.conferenceId, tx);
-      if (!conference) {
-        throw new NotFoundError("Associated conference not found.");
-      }
-
-      if (conference.isPastRegistrationDeadline()) {
-        throw new BusinessRuleValidationError("Event lifecycle closed. Modifications disabled.");
-      }
-
-      // 4. Tier capacity check if changing
-      if (ticketTier && ticketTier !== registration.ticketTier) {
-        const currentTierCount = await this.registrationRepository.countActiveRegistrationsByTier(
-          registration.conferenceId, 
-          ticketTier, 
+      const conference =
+        await this.conferenceRepository.findByIdWithLock(
+          registration.conferenceId,
           tx
         );
-        if (conference.isTierFullyBooked(ticketTier, currentTierCount)) {
-          throw new BusinessRuleValidationError(`Ticket tier [${ticketTier}] is sold out.`);
+
+      if (!conference) {
+        throw new NotFoundError("Conference not found.");
+      }
+
+      if (
+        !this.conferenceRepository.assertRegistrationOpen(conference)
+      ) {
+        throw new BusinessRuleValidationError(
+          "Registration changes are closed."
+        );
+      }
+
+      if (
+        requestedTier !== undefined &&
+        String(requestedTier).toUpperCase() !== registration.ticketTier
+      ) {
+        const tier = String(requestedTier).toUpperCase();
+        const count =
+          await this.registrationRepository.countActiveRegistrationsByTier(
+            registration.conferenceId,
+            tier,
+            tx
+          );
+
+        if (
+          !this.conferenceRepository.assertTierAvailable(
+            conference,
+            tier,
+            count
+          )
+        ) {
+          throw new BusinessRuleValidationError(
+            `Ticket tier ${tier} is sold out.`
+          );
         }
       }
 
-      // 5. Idempotency check
-      if (registration.ticketTier === ticketTier && registration.attendeeNotes === attendeeNotes) {
-        return registration; // No-op
-      }
+      registration.updateDetails({
+        ticketTier:
+          requestedTier === undefined
+            ? undefined
+            : String(requestedTier).toUpperCase(),
+        attendeeNotes: data.attendeeNotes ?? data.notes,
+        dietaryRequirements: data.dietaryRequirements,
+        specialAssistance: data.specialAssistance,
+      });
 
-      // 6. Domain mutation
-      registration.updateDetails({ ticketTier, attendeeNotes });
-
-      // 7. Atomic persist
       await this.registrationRepository.save(registration, tx);
-      await this.outboxRepository.saveMany(registration.pullDomainEvents(), tx);
+
+      const events = registration.pullDomainEvents();
+      if (events.length) {
+        await this.outboxRepository.save(events, tx);
+      }
 
       return registration;
     });

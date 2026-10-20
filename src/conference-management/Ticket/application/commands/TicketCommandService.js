@@ -1,284 +1,168 @@
-// src/conference-management/ticket/application/commands/TicketCommandService.js
 
-import {
-  NotFoundError,
-  ConcurrencyConflictError,
-  DomainError,
-} from "../../../../shared/domain/error/DomainErrors.js";
-
-import { withRetry } from "../../../../shared/utils/retry.js";
+import { Ticket } from "../../domain/entities/Ticket.js";
+import { Money } from "../../domain/valueobjects/Money.js";
 
 export class TicketCommandService {
-  #ticketRepository;
-  #conferenceRepository;
-  #outboxRepository;
-  #unitOfWork;
-  #logger;
-  #metrics;
-  #tracer;
-
   constructor({
     ticketRepository,
-    conferenceRepository,
     outboxRepository,
     unitOfWork,
     logger,
-    metrics,
-    tracer,
   }) {
-    this.#ticketRepository = ticketRepository;
-    this.#conferenceRepository = conferenceRepository;
-    this.#outboxRepository = outboxRepository;
-    this.#unitOfWork = unitOfWork;
-    this.#logger = logger;
-    this.#metrics = metrics;
-    this.#tracer = tracer;
+    if (!ticketRepository || !outboxRepository || !unitOfWork) {
+      throw new Error("TicketCommandService dependencies are required.");
+    }
+
+    Object.assign(this, {
+      ticketRepository,
+      outboxRepository,
+      unitOfWork,
+      logger,
+    });
   }
 
-  async reserveTicket(command) {
-    const {
-      ticketId,
-      userId,
-      quantity,
-      correlationId,
-      idempotencyKey,
-    } = command;
+  async #persistEvents(ticket, transaction) {
+    const events = ticket.pullEvents();
 
-    const log = this.#logger.child({
-      correlationId,
-      ticketId,
-      userId,
-      operation: "reserveTicket",
+    if (events.length > 0) {
+      await this.outboxRepository.save(events, transaction);
+    }
+  }
+
+  async createTicket(input) {
+    return this.unitOfWork.runInTransaction(async transaction => {
+      const ticket = Ticket.create({
+        conferenceId: input.conferenceId,
+        type: input.type,
+        price: new Money(input.price, input.currency),
+        capacity: input.capacity,
+        correlationId: input.correlationId,
+      });
+
+      await this.ticketRepository.save(ticket, transaction);
+      await this.#persistEvents(ticket, transaction);
+
+      this.logger?.info?.(
+        { ticketId: ticket.id, conferenceId: ticket.conferenceId },
+        "Ticket inventory created."
+      );
+
+      return ticket.toJSON();
     });
+  }
 
-    const started = process.hrtime.bigint();
+  async reserveTicket(input) {
+    return this.unitOfWork.runInTransaction(async transaction => {
+      const ticket = await this.#loadForUpdate(input.ticketId, transaction);
 
-    return this.#tracer.startActiveSpan(
-      "TicketCommandService.reserveTicket",
-      async (span) => {
+      ticket.reserve(
+        input.quantity,
+        input.userId,
+        input.correlationId
+      );
 
-        span.setAttributes({
-          "ticket.id": ticketId,
-          "user.id": userId,
-          "reservation.quantity": quantity,
-          "correlation.id": correlationId,
-        });
+      await this.ticketRepository.save(ticket, transaction);
+      await this.#persistEvents(ticket, transaction);
 
-        this.#metrics.counter("ticket.reserve.requests").inc();
+      return ticket.toJSON();
+    });
+  }
 
-        log.info(
-          {
-            quantity,
-            idempotencyKey,
-          },
-          "Ticket reservation started"
-        );
+  async releaseTicket(input) {
+    return this.unitOfWork.runInTransaction(async transaction => {
+      const ticket = await this.#loadForUpdate(input.ticketId, transaction);
 
-        try {
+      ticket.release(input.quantity, input.correlationId);
 
-          const ticket = await withRetry(
-            async () =>
-              this.#unitOfWork.execute(async (trx) => {
+      await this.ticketRepository.save(ticket, transaction);
+      await this.#persistEvents(ticket, transaction);
 
-                //------------------------------------
-                // Idempotency
-                //------------------------------------
+      return ticket.toJSON();
+    });
+  }
 
-                const cached =
-                  await this.#ticketRepository.findByIdempotencyKey(
-                    idempotencyKey,
-                    trx
-                  );
+  async confirmPurchase(input) {
+    return this.unitOfWork.runInTransaction(async transaction => {
+      const ticket = await this.#loadForUpdate(input.ticketId, transaction);
 
-                if (cached) {
+      ticket.confirmPurchase(
+        input.quantity,
+        input.paymentId,
+        input.correlationId
+      );
 
-                  this.#metrics
-                    .counter("ticket.reserve.idempotency_hits")
-                    .inc();
+      await this.ticketRepository.save(ticket, transaction);
+      await this.#persistEvents(ticket, transaction);
 
-                  log.info(
-                    { idempotencyKey },
-                    "Idempotent request"
-                  );
+      return ticket.toJSON();
+    });
+  }
 
-                  return cached;
-                }
+  async cancelTicket(input) {
+    return this.unitOfWork.runInTransaction(async transaction => {
+      const ticket = await this.#loadForUpdate(input.ticketId, transaction);
 
-                //------------------------------------
-                // Load Aggregate
-                //------------------------------------
+      ticket.cancel(input.reason, input.correlationId);
 
-                const ticket =
-                  await this.#ticketRepository.findById(
-                    ticketId,
-                    trx
-                  );
+      await this.ticketRepository.save(ticket, transaction);
+      await this.#persistEvents(ticket, transaction);
 
-                if (!ticket) {
+      return ticket.toJSON();
+    });
+  }
 
-                  log.warn(
-                    { ticketId },
-                    "Ticket not found"
-                  );
+  
+async cancelTicketsByConference({ conferenceId, reason, correlationId }) {
+  if (!conferenceId) {
+    throw new Error("conferenceId is required.");
+  }
 
-                  throw new NotFoundError(
-                    `Ticket ${ticketId} not found`
-                  );
-                }
+  return this.unitOfWork.runInTransaction(async transaction => {
+    const tickets =
+      await this.ticketRepository.findActiveByConferenceForUpdate(
+        conferenceId,
+        transaction
+      );
 
-                //------------------------------------
-                // Domain
-                //------------------------------------
+    let cancelledCount = 0;
 
-                ticket.reserve(
-                  quantity,
-                  userId,
-                  correlationId
-                );
+    for (const ticket of tickets) {
+      ticket.cancel(
+        reason || "CONFERENCE_CANCELLED",
+        correlationId
+      );
 
-                //------------------------------------
-                // Persist Aggregate
-                //------------------------------------
+      await this.ticketRepository.save(ticket, transaction);
+      await this.#persistEvents(ticket, transaction);
+      cancelledCount += 1;
+    }
 
-                await this.#ticketRepository.save(
-                  ticket,
-                  trx
-                );
-
-                //------------------------------------
-                // Outbox
-                //------------------------------------
-
-                await this.#outboxRepository.store(
-                  ticket.pullEvents(),
-                  trx
-                );
-
-                //------------------------------------
-                // Idempotency Record
-                //------------------------------------
-
-                await this.#ticketRepository
-                  .saveIdempotencyKey(
-                    idempotencyKey,
-                    ticket.id,
-                    trx
-                  );
-
-                return ticket;
-              }),
-            {
-              retries: 3,
-
-              onRetry: (err, attempt) => {
-
-                if (!(err instanceof ConcurrencyConflictError))
-                  return false;
-
-                this.#metrics
-                  .counter("ticket.reserve.retries")
-                  .inc();
-
-                log.warn(
-                  {
-                    attempt,
-                    error: err.message,
-                  },
-                  "Retrying optimistic concurrency conflict"
-                );
-
-                return true;
-              },
-            }
-          );
-
-          //------------------------------------
-          // Success
-          //------------------------------------
-
-          this.#metrics
-            .counter("ticket.reserve.success")
-            .inc();
-
-          span.setStatus({
-            code: 1,
-          });
-
-          log.info(
-            {
-              version: ticket.version,
-              available: ticket.available,
-            },
-            "Ticket reserved successfully"
-          );
-
-          return ticket;
-        }
-
-        //----------------------------------------
-        // Business Failures
-        //----------------------------------------
-
-        catch (err) {
-
-          if (err instanceof DomainError) {
-
-            this.#metrics
-              .counter("ticket.reserve.business_failure")
-              .inc();
-
-            log.warn(
-              {
-                error: err.message,
-                code: err.code,
-              },
-              "Reservation rejected"
-            );
-
-            span.recordException(err);
-
-            throw err;
-          }
-
-          //----------------------------------------
-          // Infrastructure Failures
-          //----------------------------------------
-
-          this.#metrics
-            .counter("ticket.reserve.system_failure")
-            .inc();
-
-          log.error(
-            {
-              error: err,
-            },
-            "Unexpected reservation failure"
-          );
-
-          span.recordException(err);
-
-          throw err;
-        }
-
-        finally {
-
-          const elapsed =
-            Number(process.hrtime.bigint() - started) / 1_000_000;
-
-          this.#metrics
-            .histogram("ticket.reserve.duration.ms")
-            .observe(elapsed);
-
-          log.info(
-            {
-              durationMs: elapsed,
-            },
-            "Reservation completed"
-          );
-
-          span.end();
-        }
-      }
+    this.logger?.info?.(
+      { conferenceId, cancelledCount, correlationId },
+      "Ticket inventory cancelled for conference."
     );
+
+    return { cancelledCount };
+  });
+}
+
+  async #loadForUpdate(ticketId, transaction) {
+    if (!ticketId) {
+      throw new Error("ticketId is required.");
+    }
+
+    const ticket = await this.ticketRepository.findByIdForUpdate(
+      ticketId,
+      transaction
+    );
+
+    if (!ticket) {
+      const error = new Error(`Ticket ${ticketId} was not found.`);
+      error.status = 404;
+      error.code = "TICKET_NOT_FOUND";
+      throw error;
+    }
+
+    return ticket;
   }
 }

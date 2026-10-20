@@ -10,200 +10,251 @@ import { createReconciliationModule } from "./reconciliation/index.js";
 import { createSettlementModule } from "./settlement/index.js";
 import { createTaxModule } from "./tax/index.js";
 
-export function createAccountingServicesModule(shared) {
+/**
+ * Resolve the Knex instance from the shared infrastructure.
+ *
+ * Supports:
+ *   shared.knex
+ *   shared.db.knex
+ *   shared.db (when it is itself a Knex instance)
+ */
+function resolveKnex(shared) {
+    const knex =
+        shared.knex ??
+        shared.db?.knex ??
+        shared.db;
 
-    const {
-        eventBus,
-        outboxWorker,
-        logger,
-    } = shared;
+    if (
+        !knex ||
+        typeof knex.transaction !== "function"
+    ) {
+        throw new TypeError(
+            "AccountingServices: a valid Knex instance is required. " +
+            "Provide shared.knex or shared.db.",
+        );
+    }
 
-    // ======================================================
-    // Create Bounded Contexts
-    // ======================================================
+    return knex;
+}
 
-    const ledgerModule =
-        createLedgerModule(shared);
+/**
+ * Adapt an existing transaction manager or unit of work to
+ * the interface expected by invoice use cases:
+ *
+ *     transactionManager.run(async (trx) => { ... })
+ *
+ * Supported source interfaces:
+ *   - run(operation, options)
+ *   - runInTransaction(operation, options)
+ *   - execute(operation, options)
+ */
+function createInvoiceTransactionManager(shared) {
+    const manager =
+        shared.transactionManager ??
+        (
+            typeof shared.unitOfWorkFactory === "function"
+                ? shared.unitOfWorkFactory()
+                : null
+        );
 
-    const paymentModule =
-        createPaymentModule(shared);
+    if (!manager) {
+        throw new Error(
+            "AccountingServices: transaction manager is required. " +
+            "Provide shared.transactionManager or shared.unitOfWorkFactory.",
+        );
+    }
 
-    const invoiceModule =
-        createInvoiceModule(shared);
+    if (typeof manager.run === "function") {
+        return manager;
+    }
 
-    const refundModule =
-        createRefundModule(shared);
+    if (typeof manager.runInTransaction === "function") {
+        return {
+            run(operation, options) {
+                return manager.runInTransaction(
+                    operation,
+                    options,
+                );
+            },
+        };
+    }
 
-    const reconciliationModule =
-        createReconciliationModule(shared);
+    if (typeof manager.execute === "function") {
+        return {
+            run(operation, options) {
+                return manager.execute(
+                    operation,
+                    options,
+                );
+            },
+        };
+    }
 
-    const settlementModule =
-        createSettlementModule(shared);
+    throw new TypeError(
+        "AccountingServices: unsupported transaction manager. " +
+        "Expected run(), runInTransaction(), or execute().",
+    );
+}
 
-    const taxModule =
-        createTaxModule(shared);
+/**
+ * Validate the router returned by a bounded-context module.
+ */
+function mountModule(router, path, module, moduleName) {
+    if (
+        !module ||
+        typeof module.router !== "function"
+    ) {
+        throw new TypeError(
+            `AccountingServices: ${moduleName} must expose an Express router.`,
+        );
+    }
 
-    // ======================================================
-    // Router
-    // ======================================================
+    router.use(path, module.router);
+}
+
+/**
+ * Initialize all accounting bounded contexts and compose
+ * their routers under a single accounting-services router.
+ *
+ * @param {object} shared
+ * @returns {object}
+ */
+export function createAccountingServicesModule(shared = {}) {
+    if (
+        !shared ||
+        typeof shared !== "object" ||
+        Array.isArray(shared)
+    ) {
+        throw new TypeError(
+            "AccountingServices: shared infrastructure must be an object.",
+        );
+    }
+
+    // Keep all injected infrastructure and configuration intact.
+    const sharedContext = {
+        ...shared,
+    };
+
+    // Resolve shared infrastructure once.
+    const knex = resolveKnex(sharedContext);
+
+    sharedContext.knex = knex;
+
+    // ---------------------------------------------------------
+    // 1. Initialize bounded-context modules
+    // ---------------------------------------------------------
+
+    const ledgerModule = createLedgerModule(
+        sharedContext,
+    );
+
+    const paymentModule = createPaymentModule(
+        sharedContext,
+    );
+
+    // Invoice use cases expect transactionManager.run(...).
+    // Adapt the existing unit-of-work/transaction API as needed.
+    const transactionManager =
+        createInvoiceTransactionManager(sharedContext);
+
+    const invoiceModule = createInvoiceModule({
+        ...sharedContext,
+        knex,
+        transactionManager,
+    });
+
+    const refundModule = createRefundModule(
+        sharedContext,
+    );
+
+    const reconciliationModule = createReconciliationModule(
+        sharedContext,
+    );
+
+    const settlementModule = createSettlementModule(
+        sharedContext,
+    );
+
+    const taxModule = createTaxModule(
+        sharedContext,
+    );
+
+    // ---------------------------------------------------------
+    // 2. Compose bounded-context routers
+    // ---------------------------------------------------------
 
     const router = Router();
 
-    router.use("/ledger", ledgerModule.router);
+    mountModule(
+        router,
+        "/ledger",
+        ledgerModule,
+        "LedgerModule",
+    );
 
-    router.use("/payments", paymentModule.router);
+    mountModule(
+        router,
+        "/payments",
+        paymentModule,
+        "PaymentModule",
+    );
 
-    router.use("/invoices", invoiceModule.router);
+    mountModule(
+        router,
+        "/invoices",
+        invoiceModule,
+        "InvoiceModule",
+    );
 
-    router.use("/refunds", refundModule.router);
+    mountModule(
+        router,
+        "/refunds",
+        refundModule,
+        "RefundModule",
+    );
 
-    router.use("/reconciliation", reconciliationModule.router);
+    mountModule(
+        router,
+        "/reconciliation",
+        reconciliationModule,
+        "ReconciliationModule",
+    );
 
-    router.use("/settlements", settlementModule.router);
+    mountModule(
+        router,
+        "/settlements",
+        settlementModule,
+        "SettlementModule",
+    );
 
-    router.use("/tax", taxModule.router);
+    mountModule(
+        router,
+        "/tax",
+        taxModule,
+        "TaxModule",
+    );
 
-    // ======================================================
-    // Event Subscription
-    // ======================================================
-
-    let subscriptionToken = null;
+    // ---------------------------------------------------------
+    // 3. Return the composed module and its bounded contexts
+    // ---------------------------------------------------------
 
     return {
-
-        name: "accounting-services",
-
-        basePath: "/api/accounting",
-
         router,
 
-        subscribe() {
+        // Shared dependencies used by accounting modules.
+        knex,
+        transactionManager,
+        eventBus: sharedContext.eventBus,
+        outboxWorker: sharedContext.outboxWorker,
+        logger: sharedContext.logger,
 
-            // Allow each bounded context to register
-            // its own event subscriptions.
-
-            ledgerModule.subscribe?.();
-
-            paymentModule.subscribe?.();
-
-            invoiceModule.subscribe?.();
-
-            refundModule.subscribe?.();
-
-            reconciliationModule.subscribe?.();
-
-            settlementModule.subscribe?.();
-
-            taxModule.subscribe?.();
-
-            // --------------------------------------------------
-            // Temporary cross-context subscription.
-            // Move this into Ledger later.
-            // --------------------------------------------------
-
-            const postJournalEntryUseCase =
-                ledgerModule.useCases?.postJournalEntryUseCase;
-
-            if (!postJournalEntryUseCase) {
-                return;
-            }
-
-            subscriptionToken =
-                eventBus.subscribe(
-                    "payment.released",
-                    async (event) => {
-
-                        try {
-
-                            await postJournalEntryUseCase.execute({
-
-                                transactionId:
-                                    event.payload.transactionId,
-
-                                amount:
-                                    event.payload.amount,
-
-                                correlationId:
-                                    event.correlationId,
-
-                            });
-
-                        } catch (error) {
-
-                            logger.error(
-                                {
-                                    error,
-                                    eventId: event.id,
-                                },
-                                "Failed processing payment.released"
-                            );
-
-                        }
-
-                    }
-                );
-
-        },
-
-        async start() {
-
-            await ledgerModule.start?.();
-
-            await paymentModule.start?.();
-
-            await invoiceModule.start?.();
-
-            await refundModule.start?.();
-
-            await reconciliationModule.start?.();
-
-            await settlementModule.start?.();
-
-            await taxModule.start?.();
-
-            logger.info(
-                "Accounting Services started."
-            );
-
-        },
-
-        async stop() {
-
-            if (
-                subscriptionToken &&
-                typeof eventBus.unsubscribe === "function"
-            ) {
-
-                eventBus.unsubscribe(
-                    "payment.released",
-                    subscriptionToken
-                );
-
-            }
-
-            await ledgerModule.stop?.();
-
-            await paymentModule.stop?.();
-
-            await invoiceModule.stop?.();
-
-            await refundModule.stop?.();
-
-            await reconciliationModule.stop?.();
-
-            await settlementModule.stop?.();
-
-            await taxModule.stop?.();
-
-            // Stop shared infrastructure last.
-            await outboxWorker?.stop?.();
-
-            logger.info(
-                "Accounting Services stopped."
-            );
-
-        },
-
+        // Bounded-context module handles.
+        ledgerModule,
+        paymentModule,
+        invoiceModule,
+        refundModule,
+        reconciliationModule,
+        settlementModule,
+        taxModule,
     };
-
 }

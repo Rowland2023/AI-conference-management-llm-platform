@@ -34,11 +34,12 @@ export function authenticate({
             const token =
                 authorization.slice(7);
 
-            const user =
-                await tokenVerifier.verify(token);
+            const payload = await tokenVerifier.verify(token);
 
-            req.user = user;
-
+req.user = {
+    ...payload,
+    id: payload.sub,
+};
             return next();
 
         } catch (error) {

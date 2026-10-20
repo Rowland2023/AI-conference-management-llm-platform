@@ -1,6 +1,8 @@
-// src/bootstrap/infrastructure.js
+
+// src/boostrap/infrastructure.js
 
 import Redis from "ioredis";
+import axios from "axios";
 
 import { KafkaConnection }
     from "../shared/infrastructure/messaging/kafka/KafkaConnection.js";
@@ -28,6 +30,19 @@ export function bootstrapInfrastructure({
 }) {
 
     // ======================================================
+    // HTTP Client
+    // ======================================================
+
+    const httpClient = axios.create({
+        baseURL: "https://api.paystack.co",
+        timeout: 15000,
+        headers: {
+            "Content-Type": "application/json",
+        },
+    });
+
+
+    // ======================================================
     // Redis
     // ======================================================
 
@@ -41,7 +56,6 @@ export function bootstrapInfrastructure({
         maxRetriesPerRequest: 1,
 
         retryStrategy(times) {
-
             const delay = Math.min(times * 1000, 5000);
 
             logger.warn(
@@ -52,9 +66,7 @@ export function bootstrapInfrastructure({
                 "Redis reconnect attempt."
             );
 
-            // Stop reconnecting after 5 attempts
             if (times >= 5) {
-
                 logger.error(
                     "Redis unavailable. Giving up reconnect attempts."
                 );
@@ -67,67 +79,30 @@ export function bootstrapInfrastructure({
     });
 
 
-    redis.on(
-        "connect",
-        () => {
+    redis.on("connect", () => {
+        logger.info("Redis connected.");
+    });
 
-            logger.info(
-                "Redis connected."
-            );
+    redis.on("ready", () => {
+        logger.info("Redis ready.");
+    });
 
-        }
-    );
+    redis.on("error", (err) => {
+        logger.warn(
+            {
+                error: err.message,
+            },
+            "Redis connection error."
+        );
+    });
 
+    redis.on("close", () => {
+        logger.warn("Redis connection closed.");
+    });
 
-    redis.on(
-        "ready",
-        () => {
-
-            logger.info(
-                "Redis ready."
-            );
-
-        }
-    );
-
-
-    redis.on(
-        "error",
-        (err) => {
-
-            logger.warn(
-                {
-                    error: err.message,
-                },
-                "Redis connection error."
-            );
-
-        }
-    );
-
-
-    redis.on(
-        "close",
-        () => {
-
-            logger.warn(
-                "Redis connection closed."
-            );
-
-        }
-    );
-
-
-    redis.on(
-        "end",
-        () => {
-
-            logger.warn(
-                "Redis client disconnected."
-            );
-
-        }
-    );
+    redis.on("end", () => {
+        logger.warn("Redis client disconnected.");
+    });
 
 
     registerLockCommands(redis);
@@ -137,49 +112,42 @@ export function bootstrapInfrastructure({
     // Kafka
     // ======================================================
 
-    const kafkaConnection =
-        new KafkaConnection({
-            clientId: config.kafka.clientId,
-            brokers: config.kafka.brokers,
-            logger,
-        });
+    const kafkaConnection = new KafkaConnection({
+        clientId: config.kafka.clientId,
+        brokers: config.kafka.brokers,
+        logger,
+    });
 
-
-    const eventBus =
-        new KafkaEventBus({
-            kafkaConnection,
-            groupId: config.kafka.groupId,
-            logger,
-        });
+    const eventBus = new KafkaEventBus({
+        kafkaConnection,
+        groupId: config.kafka.groupId,
+        logger,
+    });
 
 
     // ======================================================
     // Database
     // ======================================================
 
-    const unitOfWorkFactory =
-        () =>
-            new KnexUnitOfWork({
-                knex: db,
-            });
+    const unitOfWorkFactory = () =>
+        new KnexUnitOfWork({
+            knex: db,
+        });
 
 
     // ======================================================
     // Outbox
     // ======================================================
 
-    const outboxRepository =
-        new PostgresOutboxRepository({
-            db,
-        });
+    const outboxRepository = new PostgresOutboxRepository({
+        db,
+    });
 
-
-    const outboxWorker =
-        new OutboxWorker({
-            outboxRepository,
-            eventBus,
-            logger,
-        });
+    const outboxWorker = new OutboxWorker({
+        outboxRepository,
+        eventBus,
+        logger,
+    });
 
 
     // ======================================================
@@ -187,23 +155,15 @@ export function bootstrapInfrastructure({
     // ======================================================
 
     return {
-
         db,
-
         redis,
-
         config,
-
+        httpClient,
         unitOfWorkFactory,
-
         kafkaConnection,
-
         eventBus,
-
         outboxRepository,
-
         outboxWorker,
-
         logger,
     };
 }

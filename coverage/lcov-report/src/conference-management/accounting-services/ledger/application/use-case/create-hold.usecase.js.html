@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">10.93% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/64</span>
+                <span class='fraction'>7/64</span>
             </div>
         
             
@@ -37,16 +37,16 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">10% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/10</span>
+                <span class='fraction'>1/10</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">10.93% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/64</span>
+                <span class='fraction'>7/64</span>
             </div>
         
             
@@ -390,16 +390,10 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -407,22 +401,28 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -705,7 +705,7 @@ import {
   InsufficientFundsError,
 } from "../../domain/error/index.js";
 &nbsp;
-const toBigIntSafe = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(v</span>alue) =&gt; {</span>
+const toBigIntSafe = <span class="fstat-no" title="function not covered" >(v</span>alue) =&gt; {
 <span class="cstat-no" title="statement not covered" >  if (typeof value === "bigint") {</span>
 <span class="cstat-no" title="statement not covered" >    return value;</span>
   }
@@ -724,7 +724,7 @@ const toBigIntSafe = <span class="cstat-no" title="statement not covered" ><span
 };
 &nbsp;
 export class CreateHoldUseCase {
-<span class="fstat-no" title="function not covered" >  co</span>nstructor({
+  constructor({
     holdRepository,
     accountRepository,
     journalEntryRepository,
@@ -732,12 +732,12 @@ export class CreateHoldUseCase {
     logger,
     metrics,
   }) {
-<span class="cstat-no" title="statement not covered" >    this.holdRepository = holdRepository;</span>
-<span class="cstat-no" title="statement not covered" >    this.accountRepository = accountRepository;</span>
-<span class="cstat-no" title="statement not covered" >    this.journalEntryRepository = journalEntryRepository;</span>
-<span class="cstat-no" title="statement not covered" >    this.unitOfWork = unitOfWork;</span>
-<span class="cstat-no" title="statement not covered" >    this.logger = logger;</span>
-<span class="cstat-no" title="statement not covered" >    this.metrics = metrics;</span>
+    this.holdRepository = holdRepository;
+    this.accountRepository = accountRepository;
+    this.journalEntryRepository = journalEntryRepository;
+    this.unitOfWork = unitOfWork;
+    this.logger = logger;
+    this.metrics = metrics;
   }
 &nbsp;
 <span class="fstat-no" title="function not covered" >  as</span>ync execute({
@@ -1015,7 +1015,7 @@ export class CreateHoldUseCase {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-08-14T22:48:18.627Z
+                at 2026-10-20T09:58:03.016Z
             </div>
         <script src="../../../../../../prettify.js"></script>
         <script>

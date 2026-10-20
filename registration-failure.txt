@@ -1,0 +1,52 @@
+
+--------------------------------
+Starting Test Suite
+--------------------------------
+{"level":30,"time":1792181922380,"pid":24232,"hostname":"DESKTOP-LB92A35","msg":"Authentication module initialized"}
+FAIL test/api/registration.test.js (9.904 s)
+  Registration API Integration Tests
+    × POST /registrations creates a registration (6 ms)
+
+  ● Registration API Integration Tests › POST /registrations creates a registration
+
+    [PaystackGatewayAdapter] httpClient is required.
+
+    [0m [90m 84 |[39m
+     [90m 85 |[39m     [36mif[39m ([33m![39mhttpClient) {
+    [31m[1m>[22m[39m[90m 86 |[39m       [36mthrow[39m [36mnew[39m [33mError[39m(
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 87 |[39m         [32m"[PaystackGatewayAdapter] httpClient is required."[39m
+     [90m 88 |[39m       )[33m;[39m
+     [90m 89 |[39m     }[0m
+
+      at new PaystackGatewayAdapter (src/conference-management/accounting-services/refund/infrastructure/repositories/adapters/PaymentGatewayAdapter.js:86:13)
+      at createRefundModule (src/conference-management/accounting-services/refund/index.js:80:9)
+      at createAccountingServicesModule (src/conference-management/accounting-services/index.js:166:44)
+      at boostrapModules (src/boostrap/modules.js:30:39)
+      at src/app.js:73:30
+      at Generator.call (src/app.js:2:1)
+      at Generator._invoke [as next] (src/app.js:2:1)
+      at asyncGeneratorStep (src/app.js:2:1)
+      at asyncGeneratorStep (src/app.js:2:1)
+      at _next (src/app.js:2:1)
+      at src/app.js:2:1
+      at apply (src/app.js:100:2)
+      at apply (src/app.js:17:32)
+      at test/api/registration.test.js:9:44
+      at Generator.call (test/api/registration.test.js:2:1)
+      at Generator._invoke [as next] (test/api/registration.test.js:2:1)
+      at asyncGeneratorStep (test/api/registration.test.js:2:1)
+      at asyncGeneratorStep (test/api/registration.test.js:2:1)
+      at _next (test/api/registration.test.js:2:1)
+      at Object.<anonymous> (test/api/registration.test.js:2:1)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 1 total
+Snapshots:   0 total
+Time:        10.109 s
+Ran all test suites matching test/api/registration.test.js.
+{"level":30,"time":1792181926573,"pid":24232,"hostname":"DESKTOP-LB92A35","msg":"Redis connected."}
+{"level":30,"time":1792181926598,"pid":24232,"hostname":"DESKTOP-LB92A35","msg":"Redis ready."}
+Jest did not exit one second after the test run has completed.
+
+'This usually means that there are asynchronous operations that weren't stopped in your tests. Consider running Jest with `--detectOpenHandles` to troubleshoot this issue.

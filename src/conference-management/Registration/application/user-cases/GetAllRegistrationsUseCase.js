@@ -1,4 +1,8 @@
-import { UnauthorizedError, NotFoundError } from '../../../../shared/domain/error/DomainErrors.js';
+
+import {
+  UnauthorizedError,
+  NotFoundError,
+} from "../../../../shared/domain/error/DomainErrors.js";
 
 export class GetAllRegistrationsUseCase {
   constructor({ registrationRepository, conferenceRepository }) {
@@ -6,74 +10,80 @@ export class GetAllRegistrationsUseCase {
     this.conferenceRepository = conferenceRepository;
   }
 
-  async execute(filters = {}, currentUser) {
-    const {
-      page = 1,
-      limit = 20,
-      conferenceId,
-      userId,
-      status,
-      ticketTier,
-      sortBy = 'createdAt',
-      sortOrder = 'DESC'
-    } = filters;
+  async execute(input = {}, currentUser) {
+    const filters = input.filters
+      ? { ...input.filters, page: input.page, limit: input.limit }
+      : input;
 
-    // 1. Authorization & Scoping
-    let scopedUserId = userId;
-    let scopedConferenceId = conferenceId;
+    currentUser = currentUser ?? input.currentUser;
 
-    if (!currentUser.isAdmin()) {
-      if (currentUser.isAttendee()) {
-        scopedUserId = currentUser.id; // Force own data
-        scopedConferenceId = undefined; // Attendees don't filter by conference
-      } else if (currentUser.isOrganizer()) {
+    if (!currentUser) {
+      throw new UnauthorizedError("Authentication is required.");
+    }
+
+    const page = Math.max(1, Number(filters.page) || 1);
+    const limit = Math.min(
+      100,
+      Math.max(1, Number(filters.limit) || 20)
+    );
+
+    let conferenceId = filters.conferenceId ?? filters.eventId;
+    let userId = filters.userId ?? filters.attendeeId;
+
+    const isAdmin =
+      typeof currentUser.isAdmin === "function" &&
+      currentUser.isAdmin();
+
+    const isAttendee =
+      typeof currentUser.isAttendee === "function" &&
+      currentUser.isAttendee();
+
+    const isOrganizer =
+      typeof currentUser.isOrganizer === "function" &&
+      currentUser.isOrganizer();
+
+    if (!isAdmin) {
+      if (isAttendee) {
+        userId = currentUser.id;
+      } else if (isOrganizer) {
         if (!conferenceId) {
-          throw new UnauthorizedError("Organizers must provide conferenceId filter.");
+          throw new UnauthorizedError(
+            "Organizers must specify an eventId."
+          );
         }
-        const isOwner = await this.conferenceRepository.isOrganizerOf(conferenceId, currentUser.id);
-        if (!isOwner) {
-          throw new NotFoundError("Conference not found."); // Blind-wall
+
+        const authorized =
+          await this.conferenceRepository.isOrganizerOf(
+            conferenceId,
+            currentUser.id
+          );
+
+        if (!authorized) {
+          throw new NotFoundError("Conference not found.");
         }
-        scopedUserId = undefined; // Organizer sees all users in their conference
       } else {
-        throw new UnauthorizedError("Unknown user role.");
+        throw new UnauthorizedError("Unsupported user role.");
       }
     }
 
-    // 2. Input sanitization
-    const sanitizedPage = Math.max(1, Math.floor(Number(page)) || 1);
-    const sanitizedLimit = Math.min(Math.max(1, Math.floor(Number(limit)) || 20), 100);
-
-    // 3. Whitelisting
-    const ALLOWED_SORT_FIELDS = ['createdAt', 'status', 'updatedAt'];
-    const ALLOWED_STATUSES = ['PENDING', 'CONFIRMED', 'CANCELLED', 'CHECKED_IN', 'WAITLISTED'];
-    const ALLOWED_TICKET_TIERS = ['STANDARD', 'VIP', 'SPEAKER'];
-
-    const finalSortBy = ALLOWED_SORT_FIELDS.includes(sortBy) ? sortBy : 'createdAt';
-    const finalSortOrder = String(sortOrder || 'DESC').toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
-    const finalStatus = ALLOWED_STATUSES.includes(status) ? status : undefined;
-    const finalTicketTier = ALLOWED_TICKET_TIERS.includes(ticketTier) ? ticketTier : undefined;
-
-    // 4. Query
-    const queryFilters = {
-      page: sanitizedPage,
-      limit: sanitizedLimit,
-      conferenceId: scopedConferenceId,
-      userId: scopedUserId,
-      status: finalStatus,
-      ticketTier: finalTicketTier,
-      sortBy: finalSortBy,
-      sortOrder: finalSortOrder
-    };
-
-    const result = await this.registrationRepository.findAll(queryFilters);
+    const result = await this.registrationRepository.findAll({
+      page,
+      limit,
+      conferenceId,
+      userId,
+      status: filters.status,
+      ticketTier: filters.ticketTier ?? filters.ticketType,
+      sortBy: filters.sortBy,
+      sortOrder: filters.sortOrder,
+    });
 
     return {
       items: result.items,
-      page: sanitizedPage,
-      limit: sanitizedLimit,
+      page,
+      limit,
+      total: result.totalItems,
       totalItems: result.totalItems,
-      totalPages: Math.ceil(result.totalItems / sanitizedLimit)
+      totalPages: Math.ceil(result.totalItems / limit),
     };
   }
 }

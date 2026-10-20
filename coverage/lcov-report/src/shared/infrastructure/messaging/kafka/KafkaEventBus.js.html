@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">17.54% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/57</span>
+                <span class='fraction'>10/57</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">12.24% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/49</span>
+                <span class='fraction'>6/49</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">10% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/10</span>
+                <span class='fraction'>1/10</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">17.54% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/57</span>
+                <span class='fraction'>10/57</span>
             </div>
         
             
@@ -337,43 +337,43 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -591,48 +591,48 @@ import { KafkaConsumer } from "./KafkaConsumer.js";
 import RequestContext from "../../../../cross-cutting/context/request-context.js";
 &nbsp;
 export class KafkaEventBus {
-<span class="fstat-no" title="function not covered" >  co</span>nstructor(params = <span class="branch-0 cbranch-no" title="branch not covered" >{})</span> {
+  constructor(params = <span class="branch-0 cbranch-no" title="branch not covered" >{})</span> {
     const {
       kafkaConnection,
       groupId,
       logger = <span class="branch-0 cbranch-no" title="branch not covered" >console,</span>
-    } = <span class="cstat-no" title="statement not covered" >params;</span>
+    } = params;
 &nbsp;
-<span class="cstat-no" title="statement not covered" >    if (!kafkaConnection) {</span>
+    <span class="missing-if-branch" title="if path not taken" >I</span>if (!kafkaConnection) {
 <span class="cstat-no" title="statement not covered" >      throw new Error(</span>
         "KafkaEventBus requires 'kafkaConnection'."
       );
     }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >    if (typeof kafkaConnection.getKafkaInstance !== "function") {</span>
+    <span class="missing-if-branch" title="if path not taken" >I</span>if (typeof kafkaConnection.getKafkaInstance !== "function") {
 <span class="cstat-no" title="statement not covered" >      throw new Error(</span>
         "KafkaConnection must expose getKafkaInstance()."
       );
     }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >    if (!groupId || typeof groupId !== "string") {</span>
+    <span class="missing-if-branch" title="if path not taken" >I</span>if (!groupId || typeof groupId !== "string") {
 <span class="cstat-no" title="statement not covered" >      throw new Error(</span>
         "KafkaEventBus requires a valid 'groupId'."
       );
     }
 &nbsp;
-    const kafka = <span class="cstat-no" title="statement not covered" >kafkaConnection.getKafkaInstance();</span>
+    const kafka = kafkaConnection.getKafkaInstance();
 &nbsp;
-<span class="cstat-no" title="statement not covered" >    if (!kafka) {</span>
+    <span class="missing-if-branch" title="if path not taken" >I</span>if (!kafka) {
 <span class="cstat-no" title="statement not covered" >      throw new Error(</span>
         "KafkaConnection returned an invalid Kafka instance."
       );
     }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >    this.logger = logger;</span>
-<span class="cstat-no" title="statement not covered" >    this.handlersMap = new Map();</span>
+    this.logger = logger;
+    this.handlersMap = new Map();
 &nbsp;
-<span class="cstat-no" title="statement not covered" >    this.producer = new KafkaProducer({</span>
+    this.producer = new KafkaProducer({
       kafka,
       logger,
     });
 &nbsp;
-<span class="cstat-no" title="statement not covered" >    this.consumer = new KafkaConsumer({</span>
+    this.consumer = new KafkaConsumer({
       kafka,
       groupId,
       logger,
@@ -847,7 +847,7 @@ export class KafkaEventBus {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-08-14T22:48:18.627Z
+                at 2026-10-20T09:58:03.016Z
             </div>
         <script src="../../../../../prettify.js"></script>
         <script>

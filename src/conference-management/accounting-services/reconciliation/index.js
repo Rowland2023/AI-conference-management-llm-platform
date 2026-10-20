@@ -1,241 +1,58 @@
+
 // src/conference-management/accounting-services/reconciliation/index.js
 
-import { Router } from "express";
+import express from "express";
 
-// ======================================================
-// Infrastructure
-// ======================================================
+const MODULE_NAME = "reconciliation";
 
-import { ReconciliationRepositoryImpl }
-    from "./infrastructure/persistence/ReconciliationRepositoryImpl.js";
-
-// ======================================================
-// Application Services (optional)
-// ======================================================
-
-import { ReconciliationService }
-    from "./application/services/ReconciliationService.js";
-
-// ======================================================
-// Use Cases
-// ======================================================
-
-import { StartReconciliationUseCase }
-    from "./application/use_cases/StartReconciliationUseCase.js";
-
-import { DetectDiscrepanciesUseCase }
-    from "./application/use_cases/DetectDiscrepanciesUseCase.js";
-
-import { ResolveDiscrepancyUseCase }
-    from "./application/use_cases/ResolveDiscrepancyUseCase.js";
-
-import { CompleteReconciliationUseCase }
-    from "./application/use_cases/CompleteReconciliationUseCase.js";
-
-import { ListReconciliationsUseCase }
-    from "./application/use_cases/ListReconciliationsUseCase.js";
-
-// ======================================================
-// Presentation
-// ======================================================
-
-import { ReconciliationController }
-    from "./presentation/controllers/ReconciliationController.js";
-
-import { createReconciliationRouter }
-    from "./presentation/routes/reconciliation.routes.js";
-
-
-
+/**
+ * Reconciliation is temporarily isolated because the implementation
+ * is incomplete. This module exposes a stable bootstrap interface so
+ * unrelated application modules can start normally.
+ */
 export function createReconciliationModule(shared) {
-
-    const {
-
-        knex,
-
-        eventBus,
-
-        logger,
-
-        authMiddleware,
-
-        validate,
-
-    } = shared;
-
-
-
-    // ======================================================
-    // Repository
-    // ======================================================
-
-    const reconciliationRepository =
-        new ReconciliationRepositoryImpl(knex);
-
-
-
-    // ======================================================
-    // Use Cases
-    // ======================================================
-
-    const startReconciliationUseCase =
-        new StartReconciliationUseCase({
-
-            reconciliationRepository,
-
-            eventBus,
-
-            logger,
-
-        });
-
-
-
-    const detectDiscrepanciesUseCase =
-        new DetectDiscrepanciesUseCase({
-
-            reconciliationRepository,
-
-            logger,
-
-        });
-
-
-
-    const resolveDiscrepancyUseCase =
-        new ResolveDiscrepancyUseCase({
-
-            reconciliationRepository,
-
-            eventBus,
-
-            logger,
-
-        });
-
-
-
-    const completeReconciliationUseCase =
-        new CompleteReconciliationUseCase({
-
-            reconciliationRepository,
-
-            eventBus,
-
-            logger,
-
-        });
-
-
-
-    const listReconciliationsUseCase =
-        new ListReconciliationsUseCase({
-
-            reconciliationRepository,
-
-        });
-
-
-
-    // ======================================================
-    // Application Service
-    // ======================================================
-
-    const reconciliationService =
-        new ReconciliationService({
-
-            startReconciliationUseCase,
-
-            detectDiscrepanciesUseCase,
-
-            resolveDiscrepancyUseCase,
-
-            completeReconciliationUseCase,
-
-        });
-
-
-
-    // ======================================================
-    // Controller
-    // ======================================================
-
-    const controller =
-        new ReconciliationController({
-
-            reconciliationService,
-
-            listReconciliationsUseCase,
-
-        });
-
-
-
-    // ======================================================
-    // Routes
-    // ======================================================
-
-    const router =
-        createReconciliationRouter({
-
-            controller,
-
-            authMiddleware,
-
-            validate,
-
-        });
-
-
+    if (!shared || typeof shared !== "object") {
+        throw new TypeError(
+            "ReconciliationModule: shared dependencies are required."
+        );
+    }
+
+    const logger = shared.logger ?? console;
+    const router = express.Router();
+
+    let started = false;
 
     return {
-
-        name: "reconciliation",
-
+        name: MODULE_NAME,
+        enabled: false,
         router,
 
-        useCases: {
+        useCases: {},
+        services: {},
+        repositories: {},
 
-            startReconciliationUseCase,
-
-            detectDiscrepanciesUseCase,
-
-            resolveDiscrepancyUseCase,
-
-            completeReconciliationUseCase,
-
-            listReconciliationsUseCase,
-
-        },
-
-        services: {
-
-            reconciliationService,
-
-        },
-
-        repositories: {
-
-            reconciliationRepository,
-
+        // Preserve compatibility with optional module lifecycle hooks.
+        subscribe() {
+            logger.warn?.(
+                "[reconciliation] Event subscriptions are disabled."
+            );
         },
 
         async start() {
+            if (started) return;
 
-            logger.info(
-                "Reconciliation module started."
+            started = true;
+            logger.warn?.(
+                "[reconciliation] Disabled: required use cases and " +
+                "persistence are not yet implemented."
             );
-
         },
 
         async stop() {
+            if (!started) return;
 
-            logger.info(
-                "Reconciliation module stopped."
-            );
-
+            started = false;
+            logger.info?.("[reconciliation] Module stopped.");
         },
-
     };
-
 }

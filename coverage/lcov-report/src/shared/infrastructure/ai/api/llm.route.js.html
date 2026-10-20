@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/7</span>
+                <span class='fraction'>0/8</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/5</span>
+                <span class='fraction'>0/6</span>
             </div>
         
             
@@ -93,11 +93,7 @@
 <a name='L28'></a><a href='#L28'>28</a>
 <a name='L29'></a><a href='#L29'>29</a>
 <a name='L30'></a><a href='#L30'>30</a>
-<a name='L31'></a><a href='#L31'>31</a>
-<a name='L32'></a><a href='#L32'>32</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L31'></a><a href='#L31'>31</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -117,45 +113,46 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { Router } from "express";
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { Router } from 'express';
 &nbsp;
 /**
- * Presentation Layer Routing Matrix
- * Binds structural network paths directly to controller execution handlers.
- * 
  * @param {Object} dependencies
- * @param {Object} dependencies.llmController - Target execution controller instance
- * @param {Function} dependencies.authenticate - Application HTTP Auth extraction middleware
+ * @param {import('./llm.controller.js').LLMController} dependencies.llmController
+ * @param {Function} dependencies.authenticate - HTTP auth middleware
  * @returns {Router}
  */
 export function <span class="fstat-no" title="function not covered" >createLLMRouter(</span>{ llmController, authenticate }) {
-<span class="cstat-no" title="statement not covered" >    if (!llmController) <span class="cstat-no" title="statement not covered" >throw new Error("createLLMRouter Critical Failure: llmController instance required.");</span></span>
-<span class="cstat-no" title="statement not covered" >    if (!authenticate) <span class="cstat-no" title="statement not covered" >throw new Error("createLLMRouter Critical Failure: authenticate middleware required.");</span></span>
+<span class="cstat-no" title="statement not covered" >  if (!llmController) <span class="cstat-no" title="statement not covered" >throw new Error('createLLMRouter: llmController required.');</span></span>
+<span class="cstat-no" title="statement not covered" >  if (!authenticate) <span class="cstat-no" title="statement not covered" >throw new Error('createLLMRouter: authenticate middleware required.');</span></span>
 &nbsp;
-    const router = <span class="cstat-no" title="statement not covered" >Router();</span>
+  const router = <span class="cstat-no" title="statement not covered" >Router();</span>
 &nbsp;
-    /**
-     * @openapi
-     * /api/v1/assistant/chat
-     * Method: POST
-     * Description: Accepts complex natural language prompts inside a secure request body 
-     *              and establishes a non-blocking Server-Sent Events (SSE) response stream.
-     */
-<span class="cstat-no" title="statement not covered" >    router.post(</span>
-        "/chat",
-        authenticate,
-        llmController.chat
-    );
+  /**
+   * POST /api/v1/assistant/chat
+   * Body: { message: string }
+   * Streams Server-Sent Events. A write action emits a `confirmation_required`
+   * event containing a pending_id.
+   */
+<span class="cstat-no" title="statement not covered" >  router.post('/chat', authenticate, llmController.chat);</span>
 &nbsp;
-<span class="cstat-no" title="statement not covered" >    return router;</span>
+  /**
+   * POST /api/v1/assistant/confirm
+   * Body: { pending_id: uuid }
+   * Executes a previously proposed action once, for the same user and tenant.
+   */
+<span class="cstat-no" title="statement not covered" >  router.post('/confirm', authenticate, llmController.confirm);</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  return router;</span>
 }</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
@@ -163,7 +160,7 @@ export function <span class="fstat-no" title="function not covered" >createLLMRo
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-08-14T22:48:18.627Z
+                at 2026-10-20T09:58:03.016Z
             </div>
         <script src="../../../../../prettify.js"></script>
         <script>

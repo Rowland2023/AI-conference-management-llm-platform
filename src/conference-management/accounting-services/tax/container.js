@@ -4,22 +4,22 @@ import { TaxPolicy }
     from "./domain/policies/TaxPolicy.js";
 
 import { TaxRepository }
-    from "./infrastructure/persistence/TaxRepository.js";
+    from "./presentation/persistence/TaxRepository.js";
 
 import { CalculateTaxUseCase }
-    from "./application/use_cases/CalculateTaxUseCase.js";
+    from "./use-case/CalculateTaxUseCase.js";
 
 import { RecordTaxUseCase }
-    from "./application/use_cases/RecordTaxUseCase.js";
+    from "./use-case/RecordTaxUseCase.js";
 
 import { PayTaxUseCase }
-    from "./application/use_cases/PayTaxUseCase.js";
+    from "./use-case/PayTaxUseCase.js";
 
 import { GetTaxUseCase }
-    from "./application/use_cases/GetTaxUseCase.js";
+    from "./use-case/GetTaxUseCase.js";
 
 import { ListTaxesUseCase }
-    from "./application/use_cases/ListTaxesUseCase.js";
+    from "./use-case/ListTaxesUseCase.js";
 
 import { TaxService }
     from "./application/services/TaxService.js";

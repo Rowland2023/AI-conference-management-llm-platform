@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/8</span>
+                <span class='fraction'>8/8</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/8</span>
+                <span class='fraction'>8/8</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -153,9 +153,9 @@
 <a name='L88'></a><a href='#L88'>88</a>
 <a name='L89'></a><a href='#L89'>89</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -166,7 +166,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -178,7 +178,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -189,7 +189,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -197,7 +197,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -214,7 +214,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -225,7 +225,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -241,9 +241,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import Joi from 'joi';
 &nbsp;
-const uuidSchema = <span class="cstat-no" title="statement not covered" >Joi.string().guid({ version: 'uuidv4' });</span>
+const uuidSchema = Joi.string().guid({ version: 'uuidv4' });
 &nbsp;
-const currencySchema = <span class="cstat-no" title="statement not covered" >Joi.string()</span>
+const currencySchema = Joi.string()
   .uppercase()
   .valid('NGN', 'USD', 'GHS', 'KES', 'ZAR')
   .required()
@@ -254,7 +254,7 @@ const currencySchema = <span class="cstat-no" title="statement not covered" >Joi
  * Hardcoded currency symbols have been removed from the validation messages. 
  * Instead, we use Joi's dynamic template tags to cleanly print raw values.
  */
-const integerAmountSchema = <span class="cstat-no" title="statement not covered" >Joi.number()</span>
+const integerAmountSchema = Joi.number()
   .integer()
   .min(100) 
   .max(1000000000) 
@@ -266,7 +266,7 @@ const integerAmountSchema = <span class="cstat-no" title="statement not covered"
     'number.max': 'The transaction volume exceeds the maximum structural ceiling limit of {#limit} minor subunits.'
   });
 &nbsp;
-const idempotencyKeySchema = <span class="cstat-no" title="statement not covered" >Joi.string()</span>
+const idempotencyKeySchema = Joi.string()
   .trim()
   .min(16)
   .max(255)
@@ -277,7 +277,7 @@ const idempotencyKeySchema = <span class="cstat-no" title="statement not covered
     'string.min': 'Idempotency validation security strings must be at least {#limit} characters long.'
   });
 &nbsp;
-const orderIdSchema = <span class="cstat-no" title="statement not covered" >Joi.string()</span>
+const orderIdSchema = Joi.string()
   .pattern(/^[a-zA-Z0-9_-]{8,64}$/)
   .required()
   .messages({ 'string.pattern.base': 'OrderId must be between 8 and 64 characters and contain only alphanumeric tokens, hyphens, or underscores.' });
@@ -285,7 +285,7 @@ const orderIdSchema = <span class="cstat-no" title="statement not covered" >Joi.
 /**
  * 1. POST /payments Schema
  */
-export const createPaymentSchema = <span class="cstat-no" title="statement not covered" >Joi.object({</span>
+export const createPaymentSchema = Joi.object({
   body: Joi.object({
     orderId: orderIdSchema,
     amount: integerAmountSchema,
@@ -302,7 +302,7 @@ export const createPaymentSchema = <span class="cstat-no" title="statement not c
 /**
  * 2. GET /payments/:id Schema
  */
-export const getPaymentByIdSchema = <span class="cstat-no" title="statement not covered" >Joi.object({</span>
+export const getPaymentByIdSchema = Joi.object({
   params: Joi.object({
     id: uuidSchema.required().messages({
       'string.guid': 'The payment lookup route parameter must match a valid UUIDv4 structure.'
@@ -313,7 +313,7 @@ export const getPaymentByIdSchema = <span class="cstat-no" title="statement not 
 /**
  * 3. POST /payments/:id/refund Schema
  */
-export const refundPaymentSchema = <span class="cstat-no" title="statement not covered" >Joi.object({</span>
+export const refundPaymentSchema = Joi.object({
   params: Joi.object({
     id: uuidSchema.required()
   }).required(),
@@ -334,7 +334,7 @@ export const refundPaymentSchema = <span class="cstat-no" title="statement not c
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-08-14T22:48:18.627Z
+                at 2026-10-20T09:58:03.016Z
             </div>
         <script src="../../../../../../prettify.js"></script>
         <script>

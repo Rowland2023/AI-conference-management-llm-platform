@@ -1,4 +1,4 @@
-// tax/domain/value_objects/TaxStatus.js
+// tax/domain/value-objects/TaxStatus.js
 
 export const TaxStatus = Object.freeze({
 

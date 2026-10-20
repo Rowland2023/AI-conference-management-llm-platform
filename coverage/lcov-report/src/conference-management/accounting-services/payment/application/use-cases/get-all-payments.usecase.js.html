@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">13.95% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/43</span>
+                <span class='fraction'>6/43</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">4% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/25</span>
+                <span class='fraction'>1/25</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">33.33% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/3</span>
+                <span class='fraction'>1/3</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">14.63% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/41</span>
+                <span class='fraction'>6/41</span>
             </div>
         
             
@@ -194,32 +194,32 @@
 <a name='L129'></a><a href='#L129'>129</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -322,7 +322,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { ValidationError } from "../../domain/errors/PaymentErrors.js";
 import { GetAllPaymentsQuery } from "../../domain/queries/GetAllPaymentsQuery.js";
 &nbsp;
-const ALLOWED_SORT_FIELDS = <span class="cstat-no" title="statement not covered" >new Set([</span>
+const ALLOWED_SORT_FIELDS = new Set([
     "createdAt",
     "updatedAt",
     "amount",
@@ -330,24 +330,24 @@ const ALLOWED_SORT_FIELDS = <span class="cstat-no" title="statement not covered"
     "currency"
 ]);
 &nbsp;
-const ALLOWED_SORT_DIRECTIONS = <span class="cstat-no" title="statement not covered" >new Set([</span>
+const ALLOWED_SORT_DIRECTIONS = new Set([
     "asc",
     "desc"
 ]);
 &nbsp;
 export class GetAllPaymentsUseCase {
-<span class="fstat-no" title="function not covered" >    co</span>nstructor({
+    constructor({
         paymentRepository,
         logger = <span class="branch-0 cbranch-no" title="branch not covered" >console,</span>
         metrics
     }) {
-<span class="cstat-no" title="statement not covered" >        if (!paymentRepository) {</span>
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (!paymentRepository) {
 <span class="cstat-no" title="statement not covered" >            throw new Error("GetAllPaymentsUseCase requires paymentRepository.");</span>
         }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >        this.paymentRepository = paymentRepository;</span>
-<span class="cstat-no" title="statement not covered" >        this.logger = logger;</span>
-<span class="cstat-no" title="statement not covered" >        this.metrics = metrics;</span>
+        this.paymentRepository = paymentRepository;
+        this.logger = logger;
+        this.metrics = metrics;
     }
 &nbsp;
 <span class="fstat-no" title="function not covered" >    as</span>ync execute(input) {
@@ -454,7 +454,7 @@ export class GetAllPaymentsUseCase {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-08-14T22:48:18.627Z
+                at 2026-10-20T09:58:03.016Z
             </div>
         <script src="../../../../../../prettify.js"></script>
         <script>

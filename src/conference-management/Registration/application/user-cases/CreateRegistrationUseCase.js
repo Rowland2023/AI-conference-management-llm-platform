@@ -1,3 +1,4 @@
+
 import {
   NotFoundError,
   BusinessRuleValidationError,
@@ -13,167 +14,107 @@ export class CreateRegistrationUseCase {
     transactionManager,
     logger,
   }) {
-    this.registrationRepository = registrationRepository;
-    this.conferenceRepository = conferenceRepository;
-    this.outboxRepository = outboxRepository;
-    this.uuidService = uuidService;
-    this.transactionManager = transactionManager;
-    this.logger = logger.child({
-      useCase: "CreateRegistrationUseCase",
+    Object.assign(this, {
+      registrationRepository,
+      conferenceRepository,
+      outboxRepository,
+      uuidService,
+      transactionManager,
+      logger,
     });
+
+    if (!transactionManager?.runInTransaction) {
+      throw new TypeError(
+        "transactionManager.runInTransaction is required."
+      );
+    }
   }
 
-  async execute(payload, currentUser, tracingContext = {}) {
-    const {
-      conferenceId,
-      ticketType,
-      notes,
-      dietaryRequirements,
-      specialAssistance,
-    } = payload;
+  async execute(input = {}, currentUser, tracingContext = {}) {
+    const conferenceId = input.conferenceId ?? input.eventId;
+    const userId = currentUser?.id;
+    const ticketTier = input.ticketTier ?? input.ticketType;
 
-    const userId = currentUser.id;
+    if (!userId) throw new TypeError("Authenticated user is required.");
+    if (!conferenceId) throw new TypeError("eventId is required.");
+    if (!ticketTier) throw new TypeError("ticketType is required.");
 
-    this.logger.info("Creating registration", {
-      conferenceId,
-      userId,
-      ticketType,
-      ...tracingContext,
-    });
-
-    try {
-      return await this.transactionManager.runInTransaction(async (tx) => {
-        this.logger.debug("Loading conference", {
+    return this.transactionManager.runInTransaction(async tx => {
+      const conference =
+        await this.conferenceRepository.findByIdWithLock(
           conferenceId,
-          ...tracingContext,
-        });
-
-        const conference =
-          await this.conferenceRepository.findByIdWithLock(
-            conferenceId,
-            tx,
-          );
-
-        if (!conference) {
-          this.logger.warn("Conference not found", {
-            conferenceId,
-            userId,
-            ...tracingContext,
-          });
-
-          throw new NotFoundError(
-            "Conference not found."
-          );
-        }
-
-        if (conference.isPastRegistrationDeadline()) {
-          this.logger.warn("Registration deadline passed", {
-            conferenceId,
-            deadline: conference.registrationDeadline,
-            ...tracingContext,
-          });
-
-          throw new BusinessRuleValidationError(
-            "Registration for this conference has closed."
-          );
-        }
-
-        this.logger.debug("Checking duplicate registration", {
-          conferenceId,
-          userId,
-          ...tracingContext,
-        });
-
-        const isAlreadyRegistered =
-          await this.registrationRepository.existsByConferenceAndUser(
-            conferenceId,
-            userId,
-            tx,
-          );
-
-        if (isAlreadyRegistered) {
-          this.logger.warn("Duplicate registration attempt", {
-            conferenceId,
-            userId,
-            ...tracingContext,
-          });
-
-          throw new BusinessRuleValidationError(
-            "You have already registered for this conference."
-          );
-        }
-
-        const registration =
-          Registration.createPending({
-            id: this.uuidService.generate(),
-            conferenceId,
-            userId,
-            ticketType,
-            conference,
-            notes,
-            dietaryRequirements,
-            specialAssistance,
-          });
-
-        this.logger.debug("Saving registration", {
-          registrationId: registration.id,
-          ...tracingContext,
-        });
-
-        await this.registrationRepository.save(
-          registration,
-          tx,
+          tx
         );
 
-        this.logger.debug("Updating conference", {
-          conferenceId,
-          ...tracingContext,
-        });
+      if (!conference) {
+        throw new NotFoundError("Conference not found.");
+      }
 
-        await this.conferenceRepository.update(
+      // This adapter method must match the actual conference schema.
+      if (!this.conferenceRepository.assertRegistrationOpen(conference)) {
+        throw new BusinessRuleValidationError(
+          "Registration for this conference is closed."
+        );
+      }
+
+      const duplicate =
+        await this.registrationRepository.existsByConferenceAndUser(
+          conferenceId,
+          userId,
+          tx
+        );
+
+      if (duplicate) {
+        throw new BusinessRuleValidationError(
+          "You have already registered for this conference."
+        );
+      }
+
+      const tier = String(ticketTier).toUpperCase();
+      const activeCount =
+        await this.registrationRepository.countActiveRegistrationsByTier(
+          conferenceId,
+          tier,
+          tx
+        );
+
+      if (
+        !this.conferenceRepository.assertTierAvailable(
           conference,
-          tx,
+          tier,
+          activeCount
+        )
+      ) {
+        throw new BusinessRuleValidationError(
+          `Ticket tier ${tier} is sold out.`
         );
+      }
 
-        const events = registration.pullDomainEvents();
-
-        this.logger.debug("Saving outbox events", {
-          registrationId: registration.id,
-          eventCount: events.length,
-          ...tracingContext,
-        });
-
-        await this.outboxRepository.saveMany(
-          events,
-          tx,
-        );
-
-        this.logger.info(
-          "Registration created successfully",
-          {
-            registrationId: registration.id,
-            conferenceId,
-            userId,
-            ticketType: registration.ticketType,
-            ...tracingContext,
-          }
-        );
-
-        return registration;
+      const registration = Registration.createPending({
+        id: this.uuidService.generate(),
+        conferenceId,
+        userId,
+        ticketTier: tier,
+        attendeeNotes: input.attendeeNotes ?? input.notes ?? null,
+        dietaryRequirements: input.dietaryRequirements ?? null,
+        specialAssistance: input.specialAssistance ?? null,
       });
-    } catch (err) {
-      this.logger.error(
-        "Failed to create registration",
-        {
-          conferenceId,
-          userId,
-          error: err.message,
-          stack: err.stack,
-          ...tracingContext,
-        }
-      );
 
-      throw err;
-    }
+      await this.registrationRepository.save(registration, tx);
+
+      const events = registration.pullDomainEvents();
+      if (events.length) {
+        await this.outboxRepository.save(events, tx);
+      }
+
+      this.logger?.info?.("Registration created", {
+        registrationId: registration.id,
+        conferenceId,
+        userId,
+        correlationId: tracingContext.correlationId,
+      });
+
+      return registration;
+    });
   }
 }

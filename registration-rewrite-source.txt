@@ -1,0 +1,4774 @@
+﻿
+
+===== FILE: domain\AggregateRoot.js =====
+
+// src/shared/domain/AggregateRoot.js
+
+import { Entity } from "./Entity.js";
+
+export class AggregateRoot extends Entity {
+  #domainEvents = [];
+
+  constructor(props = {}) {
+    super(props);
+  }
+
+  /**
+   * Record a domain event.
+   *
+   * @protected
+   * @param {DomainEvent} event
+   */
+  addDomainEvent(event) {
+    if (!event) {
+      throw new Error("Domain event is required.");
+    }
+
+    this.#domainEvents.push(event);
+  }
+
+  /**
+   * Alias used by some teams.
+   */
+  record(event) {
+    this.addDomainEvent(event);
+  }
+
+  /**
+   * Returns a copy of pending events.
+   */
+  getDomainEvents() {
+    return [...this.#domainEvents];
+  }
+
+  /**
+   * Returns whether events exist.
+   */
+  hasDomainEvents() {
+    return this.#domainEvents.length > 0;
+  }
+
+  /**
+   * Returns all pending events and clears them.
+   * Usually called by the Unit of Work after commit.
+   */
+  pullDomainEvents() {
+    const events = [...this.#domainEvents];
+    this.#domainEvents.length = 0;
+    return events;
+  }
+
+  /**
+   * Clears events without returning them.
+   */
+  clearDomainEvents() {
+    this.#domainEvents.length = 0;
+  }
+}
+
+
+===== FILE: domain\DomainEvent.js =====
+
+import { randomUUID } from 'crypto';
+
+export class DomainEvent {
+  /**
+   * @param {Object} params
+   * @param {string} params.eventName - E.g., 'payment.initialized'
+   * @param {string} params.aggregateId - The target aggregate UUID (Crucial for outbox/Kafka grouping)
+   * @param {number} [params.eventVersion=1] - Incremental version for schema evolution
+   * @param {string} [params.eventId] - Unique identifier for this event instance
+   * @param {Date} [params.occurredAt] - Timestamp when the event actually happened
+   * @param {string|null} [params.correlationId=null] - ID to trace the casual chain across modules
+   * @param {string|null} [params.causationId=null] - ID of the message/request that triggered this event
+   */
+  constructor({
+    eventName,
+    aggregateId,
+    eventVersion = 1,
+    eventId = randomUUID(),
+    occurredAt = new Date(),
+    correlationId = null,
+    causationId = null
+  }) {
+    if (!eventName || typeof eventName !== 'string') {
+      throw new Error('DomainEvent requires a string eventName');
+    }
+    if (!aggregateId || typeof aggregateId !== 'string') {
+      throw new Error('DomainEvent requires a string aggregateId');
+    }
+    if (typeof eventVersion !== 'number' || eventVersion < 1) {
+      throw new Error('eventVersion must be a positive integer');
+    }
+    if (!(occurredAt instanceof Date) || isNaN(occurredAt.getTime())) {
+      throw new Error('occurredAt must be a valid Date');
+    }
+
+    this.metadata = Object.freeze({
+      eventId,
+      eventName,
+      aggregateId,
+      eventVersion,
+      occurredAt: occurredAt.toISOString(), 
+      correlationId: correlationId ?? null,
+      causationId: causationId ?? null
+    });
+  }
+
+  /**
+   * Safe utility method for subclasses to call at the end of their constructor
+   * to guarantee deep immutability across the entire event payload graph.
+   */
+  freezeEvent() {
+    const deepFreeze = (obj) => {
+      Object.freeze(obj);
+      Object.keys(obj).forEach((prop) => {
+        if (
+          obj[prop] !== null &&
+          (typeof obj[prop] === 'object' || typeof obj[prop] === 'function') &&
+          !Object.isFrozen(obj[prop])
+        ) {
+          deepFreeze(obj[prop]);
+        }
+      });
+    };
+    deepFreeze(this);
+    return this;
+  }
+}
+
+
+===== FILE: domain\DomainService.js =====
+
+export class DomainService {
+  constructor() {
+    if (this.constructor === DomainService) {
+      throw new Error('DomainService is an abstract base and cannot be instantiated directly.');
+    }
+  }
+
+  /**
+   * Enforces a standard operational context wrapper.
+   * Allows domain services to record business explanations/traces 
+   * without depending on technical infrastructure loggers.
+   * 
+   * @param {string} policyName - The name of the banking rule being validated
+   * @param {Function} executionFn - The pure domain logic block to run
+   * @returns {*} The result of the domain execution
+   */
+  executePolicy(policyName, executionFn) {
+    try {
+      // You could attach internal performance metric counters here 
+      // or build a pure audit-trail object graph returned alongside data
+      return executionFn();
+    } catch (error) {
+      // Wrap generic system errors into clear domain policy violations
+      error.message = `[Policy Violation: ${policyName}] ${error.message}`;
+      throw error;
+    }
+  }
+}
+
+
+===== FILE: domain\Entity.js =====
+
+import { DomainValidationError } from './error/DomainErrors.js';
+import { DomainEvent } from './DomainEvent.js'; // add this
+
+export class Entity {
+  #domainEvents = [];
+
+  constructor(id, version = 0) {
+    if (new.target === Entity) {
+      throw new Error('Entity is abstract and cannot be instantiated directly');
+    }
+    if (!id || typeof id !== 'string' || id.trim() === '') {
+      throw new DomainValidationError('Entity must have a non-empty string ID');
+    }
+    if (!Number.isInteger(version) || version < 0) {
+      throw new DomainValidationError('Entity version must be a non-negative integer');
+    }
+
+    Object.defineProperty(this, '_id', { 
+      value: id.trim(), 
+      writable: false, 
+      enumerable: true,
+      configurable: false 
+    });
+    
+    Object.defineProperty(this, '_version', { 
+      value: version, 
+      writable: true,
+      enumerable: true,
+      configurable: false 
+    });
+  }
+
+  get id() { return this._id; }
+  get version() { return this._version; }
+
+  recordEvent(event) {
+    if (!event) return;
+    if (!(event instanceof DomainEvent)) {
+      throw new Error('recordEvent only accepts DomainEvent instances');
+    }
+    this.#domainEvents.push(event);
+  }
+
+  pullEvents() {
+    const events = [...this.#domainEvents];
+    this.#domainEvents = [];
+    return Object.freeze(events);
+  }
+
+  incrementVersion() {
+    this._version += 1;
+    return this; // allow chaining
+  }
+
+  equals(other) {
+    if (other === null || other === undefined) return false;
+    if (!(other instanceof this.constructor)) return false;
+    return this.id === other.id;
+  }
+
+  toString() {
+    return `${this.constructor.name}(id=${this.id}, v=${this.version})`;
+  }
+
+  get [Symbol.toPrimitive]() {
+    return (hint) => {
+      if (hint === 'string') return this.id;
+      if (hint === 'number') return NaN;
+      return this.id;
+    };
+  }
+
+  static getMapKey(entity) {
+    if (!entity || !entity.id) return null;
+    return `${entity.constructor.name}:${entity.id}`;
+  }
+}
+
+
+===== FILE: domain\error\DomainErrors.js =====
+
+// src/shared/domain/error/DomainErrors.js
+
+export class DomainError extends Error {
+  constructor(message, { code = "DOMAIN_ERROR", statusCode = 500, cause } = {}) {
+    super(message, { cause });
+
+    this.name = this.constructor.name;
+    this.code = code;
+    this.statusCode = statusCode;
+    this.isOperational = true;
+  }
+
+  toJSON() {
+    return {
+      name: this.name,
+      code: this.code,
+      message: this.message,
+    };
+  }
+}
+
+export class DomainValidationError extends DomainError {
+  constructor(message, code = "VALIDATION_FAILED", cause) {
+    super(message, {
+      code,
+      statusCode: 422,
+      cause,
+    });
+  }
+}
+
+/**
+ * Domain invariant violation
+ * Aggregate rules violated
+ */
+export class DomainInvariantError extends DomainValidationError {
+  constructor(message, cause) {
+    super(message, "DOMAIN_INVARIANT_VIOLATION", cause);
+  }
+}
+
+export class BusinessRuleValidationError extends DomainError {
+  constructor(message, code = "BUSINESS_RULE_VIOLATION", cause) {
+    super(message, {
+      code,
+      statusCode: 400,
+      cause,
+    });
+  }
+}
+
+export class EventDeserializationError extends DomainError {
+  constructor(message, cause) {
+    super(message, {
+      code: "EVENT_DESERIALIZATION_ERROR",
+      statusCode: 400,
+      cause,
+    });
+  }
+}
+
+export class NotFoundError extends DomainError {
+  constructor(message, code = "NOT_FOUND", cause) {
+    super(message, {
+      code,
+      statusCode: 404,
+      cause,
+    });
+  }
+}
+
+export class UnauthorizedError extends DomainError {
+  constructor(message, code = "UNAUTHORIZED", cause) {
+    super(message, {
+      code,
+      statusCode: 403,
+      cause,
+    });
+  }
+}
+
+export class ConcurrencyConflictError extends DomainError {
+  constructor(message, code = "CONCURRENCY_CONFLICT", cause) {
+    super(message, {
+      code,
+      statusCode: 409,
+      cause,
+    });
+  }
+}
+
+
+===== FILE: domain\Specification.js =====
+
+export class Specification {
+  constructor() {
+    if (this.constructor === Specification) {
+      throw new Error('Specification is an abstract base and cannot be instantiated directly.');
+    }
+  }
+
+  /**
+   * Evaluate the business rule against an in-memory object instance.
+   * @param {any} candidate 
+   * @returns {boolean}
+   */
+  isSatisfiedBy(candidate) {
+    throw new Error('Method isSatisfiedBy() must be implemented');
+  }
+
+  /**
+   * Logical AND composite operation
+   * @param {Specification} other 
+   * @returns {Specification}
+   */
+  and(other) {
+    return new ConjunctionSpecification(this, other);
+  }
+
+  /**
+   * Logical OR composite operation
+   * @param {Specification} other 
+   * @returns {Specification}
+   */
+  or(other) {
+    return new DisjunctionSpecification(this, other);
+  }
+
+  /**
+   * Logical NOT negation operation
+   * @returns {Specification}
+   */
+  not() {
+    return new NegationSpecification(this);
+  }
+}
+
+class ConjunctionSpecification extends Specification {
+  constructor(left, right) {
+    super();
+    this.left = left;
+    this.right = right;
+  }
+  
+  isSatisfiedBy(candidate) {
+    return this.left.isSatisfiedBy(candidate) && this.right.isSatisfiedBy(candidate);
+  }
+}
+
+class DisjunctionSpecification extends Specification {
+  constructor(left, right) {
+    super();
+    this.left = left;
+    this.right = right;
+  }
+  
+  isSatisfiedBy(candidate) {
+    return this.left.isSatisfiedBy(candidate) || this.right.isSatisfiedBy(candidate);
+  }
+}
+
+class NegationSpecification extends Specification {
+  constructor(spec) {
+    super();
+    this.spec = spec;
+  }
+  
+  isSatisfiedBy(candidate) {
+    return !this.spec.isSatisfiedBy(candidate);
+  }
+}
+
+
+===== FILE: domain\ValueObject.js =====
+
+import { dequal } from 'dequal';
+
+function deepFreeze(obj) {
+  if (obj === null || typeof obj !== 'object') return obj;
+  if (Object.isFrozen(obj)) return obj;
+
+  // Fix: Capture standard string properties AND Symbol properties
+  const propertyKeys = Reflect.ownKeys(obj);
+
+  propertyKeys.forEach(key => {
+    const value = obj[key];
+    if (value && typeof value === 'object') deepFreeze(value);
+  });
+  
+  return Object.freeze(obj);
+}
+
+export class ValueObject {
+  /**
+   * @param {Object} props - Immutable structural properties
+   */
+  constructor(props) {
+    if (props === null || typeof props !== 'object') {
+      throw new Error('ValueObject requires a valid object configuration for its properties');
+    }
+    
+    // Seal properties recursively against structural drift
+    this.props = deepFreeze({ ...props });
+    Object.freeze(this);
+  }
+
+  /**
+   * Compare equality structurally based purely on inner values
+   * @param {ValueObject} [other]
+   * @returns {boolean}
+   */
+  equals(other) {
+    if (other === null || other === undefined) return false;
+    if (this === other) return true; // Reference check optimization
+    if (!(other instanceof this.constructor)) return false;
+    
+    return dequal(this.props, other.props);
+  }
+
+  toJSON() {
+    return this.props;
+  }
+
+  /**
+   * Kept as an explicit execution method to match the Entity baseline API pattern
+   * @returns {string}
+   */
+  hashCode() {
+    return JSON.stringify(this.props);
+  }
+}
+
+
+===== FILE: event.js =====
+
+// src/modules/Event Schedule/domain/entities/event.entities.js
+
+import { Entity } from "../../../../shared/domain/entity.js";
+import { DomainInvariantError } from "../../../../shared/domain/error/DomainErrors.js";
+import { EventScheduled } from "../events/EventScheduled.js";
+import { EventCancelled } from "../events/EventCancelled.js";
+import { EventRescheduled } from "../events/EventRescheduled.js";
+
+export const EVENT_STATUS = Object.freeze({
+  DRAFT: "Draft",
+  SCHEDULED: "Scheduled", 
+  IN_PROGRESS: "InProgress",
+  COMPLETED: "Completed",
+  CANCELLED: "Cancelled",
+});
+
+export class Event extends Entity {
+  constructor({
+    id,
+    title,
+    roomID,
+    organizerId, // who owns this
+    startTime, // ISO string, always UTC
+    endTime,   // ISO string, always UTC
+    status = EVENT_STATUS.DRAFT,
+    version = 0, // for optimistic locking
+  }) {
+    super(id);
+    this.title = title;
+    this.roomID = roomID;
+    this.organizerId = organizerId;
+    this.startTime = startTime; // store as ISO string
+    this.endTime = endTime;     // store as ISO string  
+    this.status = status;
+    this.version = version;
+  }
+
+  static create({ title, roomID, organizerId, startTime, endTime }, { correlationId = null } = {}) {
+    if (!title?.trim()) throw new DomainInvariantError("Event title is required.");
+    if (!roomID) throw new DomainInvariantError("Room ID is required.");
+    if (!organizerId) throw new DomainInvariantError("Organizer ID is required.");
+    
+    const parsedStart = new Date(startTime);
+    const parsedEnd = new Date(endTime);
+    const now = new Date();
+
+    if (Number.isNaN(parsedStart.getTime())) throw new DomainInvariantError("Invalid startTime.");
+    if (Number.isNaN(parsedEnd.getTime())) throw new DomainInvariantError("Invalid endTime.");
+    if (parsedStart >= parsedEnd) throw new DomainInvariantError("Start must be before end.");
+    if (parsedStart <= now) throw new DomainInvariantError("Cannot schedule in the past.");
+
+    const event = new Event({ 
+      title: title.trim(), 
+      roomID, 
+      organizerId,
+      startTime: parsedStart.toISOString(),
+      endTime: parsedEnd.toISOString(),
+      status: EVENT_STATUS.SCHEDULED,
+      version: 0
+    });
+
+    event.recordEvent(new EventScheduled({
+      eventId: event.id,
+      title: event.title,
+      roomId: event.roomID,
+      organizerId: event.organizerId,
+      startTime: event.startTime,
+      endTime: event.endTime,
+      correlationId
+    }));
+
+    return event;
+  }
+
+  static fromPersistence(dbDoc) {
+    if (!dbDoc) return null;
+    
+    // Trust DB but still parse dates to validate integrity
+    const start = new Date(dbDoc.startTime);
+    const end = new Date(dbDoc.endTime);
+    if (start >= end) {
+      throw new DomainInvariantError(`Corrupt event ${dbDoc.id}: start time cannot be equal to or after end time.`);
+    }
+    
+    return new Event({
+      id: dbDoc.id,
+      title: dbDoc.title,
+      roomID: dbDoc.roomID,
+      organizerId: dbDoc.organizerId,
+      startTime: dbDoc.startTime, // keep as ISO string from DB
+      endTime: dbDoc.endTime,
+      status: dbDoc.status,
+      version: dbDoc.version
+    });
+  }
+
+  cancel(reason = null, { cancelledBy, correlationId = null, causationId = null } = {}) {
+    if (this.status === EVENT_STATUS.CANCELLED) {
+      throw new DomainInvariantError("Event is already cancelled.");
+    }
+    if (new Date(this.startTime) <= new Date()) {
+      throw new DomainInvariantError("Cannot cancel past or in-progress events.");
+    }
+    if (!cancelledBy) {
+      throw new DomainInvariantError("cancelledBy is required for audit.");
+    }
+
+    this.status = EVENT_STATUS.CANCELLED;
+    this.version += 1;
+
+    this.recordEvent(new EventCancelled({
+      eventId: this.id,
+      cancelledBy,
+      reason: reason || "Administrative cancellation",
+      correlationId,
+      causationId
+    }));
+  }
+
+  reschedule({ startTime, endTime }, { correlationId = null, causationId = null } = {}) {
+    if (this.status === EVENT_STATUS.CANCELLED) {
+      throw new DomainInvariantError("Cannot reschedule a cancelled event.");
+    }
+
+    const parsedNewStart = new Date(startTime);
+    const parsedNewEnd = new Date(endTime);
+    const now = new Date();
+
+    if (Number.isNaN(parsedNewStart.getTime())) throw new DomainInvariantError("Invalid new startTime.");
+    if (Number.isNaN(parsedNewEnd.getTime())) throw new DomainInvariantError("Invalid new endTime.");
+    if (parsedNewStart >= parsedNewEnd) throw new DomainInvariantError("New startTime must be before new endTime.");
+    if (parsedNewStart <= now) throw new DomainInvariantError("Cannot reschedule an event into the past.");
+
+    const previousStartTime = this.startTime;
+    const previousEndTime = this.endTime;
+
+    this.startTime = parsedNewStart.toISOString();
+    this.endTime = parsedNewEnd.toISOString();
+    this.version += 1;
+
+    this.recordEvent(new EventRescheduled({
+      eventId: this.id,
+      previousStartTime,
+      previousEndTime,
+      newStartTime: this.startTime,
+      newEndTime: this.endTime,
+      correlationId,
+      causationId
+    }));
+  }
+}
+
+
+===== FILE: KnexTransactionManager.js =====
+
+/**
+ * @file src/cross-cutting/database/KnexTransactionManager.js
+ *
+ * Knex implementation of the TransactionManager application port.
+ */
+
+const TransactionManager = require('../../shared/application/persistence/TransactionManager');
+
+class KnexTransactionManager extends TransactionManager {
+  /**
+   * @param {Object} knex Knex instance
+   */
+  constructor(knex) {
+    super();
+
+    if (!knex) {
+      throw new Error('KnexTransactionManager requires a Knex instance.');
+    }
+
+    this.knex = knex;
+  }
+
+  /**
+   * Executes an operation inside a database transaction.
+   *
+   * @template T
+   * @param {(trx: import('knex').Knex.Transaction) => Promise<T>} operation
+   * @param {Object} [options]
+   * @param {'read_committed'|'repeatable_read'|'serializable'} [options.isolationLevel]
+   * @param {number} [options.timeoutMs]
+   * @returns {Promise<T>}
+   */
+  async runInTransaction(operation, options = {}) {
+    if (typeof operation !== 'function') {
+      throw new TypeError(
+        'Transaction operation must be a function.'
+      );
+    }
+
+    return this.knex.transaction(async (trx) => {
+      // Configure transaction before executing work
+      await this.configureTransaction(trx, options);
+
+      // Execute application work
+      return operation(trx);
+    });
+  }
+
+  /**
+   * Applies optional transaction configuration.
+   *
+   * @private
+   */
+  async configureTransaction(trx, options) {
+    const {
+      isolationLevel,
+      timeoutMs,
+    } = options;
+
+    if (isolationLevel) {
+      await trx.raw(
+        `SET TRANSACTION ISOLATION LEVEL ${this.mapIsolationLevel(isolationLevel)}`
+      );
+    }
+
+    if (timeoutMs && Number.isFinite(timeoutMs)) {
+      // PostgreSQL statement timeout (milliseconds)
+      await trx.raw(
+        'SET LOCAL statement_timeout = ?',
+        [timeoutMs]
+      );
+    }
+  }
+
+  /**
+   * Maps application isolation levels to PostgreSQL syntax.
+   *
+   * @private
+   */
+  mapIsolationLevel(level) {
+    switch (level) {
+      case 'read_committed':
+        return 'READ COMMITTED';
+
+      case 'repeatable_read':
+        return 'REPEATABLE READ';
+
+      case 'serializable':
+        return 'SERIALIZABLE';
+
+      default:
+        throw new Error(
+          `Unsupported isolation level: ${level}`
+        );
+    }
+  }
+}
+
+module.exports = KnexTransactionManager;
+
+
+===== FILE: KnexUnitOfWork.js =====
+
+/**
+ * @file src/cross-cutting/database/knex-unit-of-work.js
+ * @description Knex.js concrete implementation of the UnitOfWork application contract.
+ */
+
+import { UnitOfWork } from "../../shared/application/persistence/UnitOfWork.js";
+
+class KnexUnitOfWork extends UnitOfWork {
+  /**
+   * @param {Object} params
+   * @param {import("knex").Knex} params.knex
+   * @param {Object} [params.options]
+   */
+  constructor({ knex, options = {} }) {
+    super();
+
+    if (!knex) {
+      throw new Error(
+        "[KnexUnitOfWork] Knex instance is required."
+      );
+    }
+
+    this.knex = knex;
+
+    this.options = {
+      timeout: 10000,
+      ...options,
+    };
+
+    this.trackedAggregates = new Set();
+  }
+
+  /**
+   * Track an aggregate for later domain-event collection.
+   *
+   * @param {Object} aggregate
+   */
+  track(aggregate) {
+    if (aggregate) {
+      this.trackedAggregates.add(aggregate);
+    }
+  }
+
+  /**
+   * Remove all tracked aggregates.
+   */
+  clear() {
+    this.trackedAggregates.clear();
+  }
+
+  /**
+   * Execute work inside a transaction.
+   *
+   * @param {(trx: import("knex").Knex.Transaction) => Promise<any>} work
+   */
+  async execute(work) {
+    if (typeof work !== "function") {
+      throw new Error(
+        "[KnexUnitOfWork] Work parameter must be a function."
+      );
+    }
+
+    try {
+      return await this.knex.transaction(
+        async (trx) => {
+          return await work(trx);
+        },
+        this.options
+      );
+    } finally {
+      this.clear();
+    }
+  }
+
+  /**
+   * Backward-compatible alias used by application use cases.
+   *
+   * @param {(trx: import("knex").Knex.Transaction) => Promise<any>} work
+   */
+  async runInTransaction(work) {
+    return this.execute(work);
+  }
+}
+
+export default KnexUnitOfWork;
+
+
+===== FILE: migrations\001_create_invoices.js =====
+
+/**
+ * @param { import("knex").Knex } knex
+ * @returns { Promise<void> }
+ */
+export async function up(knex) {
+  // 1. Ensure UUID extension is active (PostgreSQL)
+  await knex.raw('CREATE EXTENSION IF NOT EXISTS "pgcrypto";');
+
+  // 2. Create Enums with idempotent safety
+  await knex.raw(`
+    DO $$ BEGIN
+      IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'invoice_status') THEN
+        CREATE TYPE invoice_status AS ENUM ('DRAFT', 'ISSUED', 'PARTIALLY_PAID', 'PAID', 'CANCELLED');
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'line_item_category') THEN
+        CREATE TYPE line_item_category AS ENUM ('MANAGEMENT_FEE', 'VENDOR_PASS_THROUGH', 'TECHNOLOGY', 'ON_SITE_STAFF', 'INCIDENTAL');
+      END IF;
+    END $$;
+  `);
+
+  // 3. Create Conference Invoices Table
+  await knex.schema.createTable('conference_invoices', (table) => {
+    table.uuid('id').primary().defaultTo(knex.raw('gen_random_uuid()'));
+    table.string('invoice_number', 64).notNullable().unique();
+    table.string('conference_name', 255).notNullable();
+    table.string('client_name', 255).notNullable();
+    table.string('client_email', 255).notNullable();
+    table.text('client_address').notNullable();
+
+    table.date('issue_date').notNullable();
+    table.date('due_date').notNullable();
+    table.date('event_start_date').notNullable();
+    table.date('event_end_date').notNullable();
+
+    table.specificType('status', 'invoice_status').notNullable().defaultTo('DRAFT');
+    table.decimal('tax_rate', 5, 2).notNullable().defaultTo(7.50);
+    table.decimal('deposit_paid', 12, 2).notNullable().defaultTo(0.00);
+
+    // Stored financial subtotals
+    table.decimal('subtotal', 12, 2).notNullable().defaultTo(0.00);
+    table.decimal('tax_amount', 12, 2).notNullable().defaultTo(0.00);
+    table.decimal('total_amount_due', 12, 2).notNullable().defaultTo(0.00);
+
+    table.timestamps(true, true);
+
+    // Query Optimization Indexes
+    table.index(['status'], 'idx_invoices_status');
+    table.index(['client_email'], 'idx_invoices_client_email');
+    table.index(['issue_date', 'due_date'], 'idx_invoices_dates');
+  });
+
+  // 4. Create Line Items Table
+  await knex.schema.createTable('invoice_line_items', (table) => {
+    table.uuid('id').primary().defaultTo(knex.raw('gen_random_uuid()'));
+    table
+      .uuid('invoice_id')
+      .notNullable()
+      .references('id')
+      .inTable('conference_invoices')
+      .onDelete('CASCADE')
+      .index('idx_line_items_invoice_id'); // Index foreign key explicitly
+
+    table.specificType('category', 'line_item_category').notNullable();
+    table.string('description', 500).notNullable();
+    table.decimal('quantity', 10, 2).notNullable().defaultTo(1.00);
+    table.decimal('unit_price', 12, 2).notNullable();
+    table.decimal('total_price', 12, 2).notNullable();
+
+    table.timestamps(true, true);
+  });
+
+  // 5. Enforce Financial Invariants & Date Constraints at DB level
+  await knex.raw(`
+    ALTER TABLE conference_invoices
+      ADD CONSTRAINT chk_invoices_dates CHECK (due_date >= issue_date),
+      ADD CONSTRAINT chk_event_dates CHECK (event_end_date >= event_start_date),
+      ADD CONSTRAINT chk_tax_rate CHECK (tax_rate >= 0.00 AND tax_rate <= 100.00),
+      ADD CONSTRAINT chk_amounts_non_negative CHECK (
+        subtotal >= 0.00 AND tax_amount >= 0.00 AND total_amount_due >= 0.00 AND deposit_paid >= 0.00
+      );
+
+    ALTER TABLE invoice_line_items
+      ADD CONSTRAINT chk_line_item_quantity CHECK (quantity > 0.00),
+      ADD CONSTRAINT chk_line_item_unit_price CHECK (unit_price >= 0.00),
+      ADD CONSTRAINT chk_line_item_total_price CHECK (total_price >= 0.00);
+  `);
+}
+
+/**
+ * @param { import("knex").Knex } knex
+ * @returns { Promise<void> }
+ */
+export async function down(knex) {
+  // Drop tables in strict reverse-dependency order
+  await knex.schema.dropTableIfExists('invoice_line_items');
+  await knex.schema.dropTableIfExists('conference_invoices');
+
+  // Safely drop custom PostgreSQL types
+  await knex.raw('DROP TYPE IF EXISTS line_item_category CASCADE;');
+  await knex.raw('DROP TYPE IF EXISTS invoice_status CASCADE;');
+}
+
+
+===== FILE: migrations\002_create_payments.js =====
+
+/**
+ * Payment persistence schema
+ *
+ * Domain source of truth:
+ * Payment.js
+ * PaymentStatus.js
+ *
+ * @param { import("knex").Knex } knex
+ * @returns { Promise<void> }
+ */
+export async function up(knex) {
+  await knex.raw('CREATE EXTENSION IF NOT EXISTS "pgcrypto";');
+
+  await knex.schema.createTable("payments", (table) => {
+    // ---------------------------------------------------------
+    // Identity
+    // ---------------------------------------------------------
+
+    table
+      .uuid("id")
+      .primary()
+      .defaultTo(knex.raw("gen_random_uuid()"));
+
+    // ---------------------------------------------------------
+    // Multi-tenancy / business context
+    // ---------------------------------------------------------
+
+    table.uuid("tenant_id").notNullable();
+
+    table.uuid("context_id").notNullable();
+
+    table.string("context_type", 50).notNullable();
+
+    // ---------------------------------------------------------
+    // Customer
+    // ---------------------------------------------------------
+
+    table.uuid("user_id").nullable();
+
+    table.string("email", 320).notNullable();
+
+    table.uuid("seller_id").nullable();
+
+    // ---------------------------------------------------------
+    // Money
+    //
+    // Amount is stored in minor units:
+    // NGN -> Kobo
+    // USD -> Cents
+    // ---------------------------------------------------------
+
+    table.bigInteger("amount").notNullable();
+
+    table.string("currency", 3).notNullable();
+
+    // ---------------------------------------------------------
+    // Payment lifecycle
+    // ---------------------------------------------------------
+
+    table
+      .string("status", 30)
+      .notNullable()
+      .defaultTo("PENDING");
+
+    table.string("gateway", 30).notNullable();
+
+    // ---------------------------------------------------------
+    // Gateway information
+    // ---------------------------------------------------------
+
+    table.string("external_reference", 255).nullable();
+
+    table.string("checkout_url", 2048).nullable();
+
+    table.string("gateway_transaction_id", 255).nullable();
+
+    table.jsonb("gateway_failure").nullable();
+
+    // ---------------------------------------------------------
+    // Lifecycle timestamps
+    // ---------------------------------------------------------
+
+    table.timestamp("paid_at", {
+      useTz: true,
+    }).nullable();
+
+    table.timestamp("released_at", {
+      useTz: true,
+    }).nullable();
+
+    table.timestamp("created_at", {
+      useTz: true,
+    }).notNullable().defaultTo(knex.fn.now());
+
+    table.timestamp("updated_at", {
+      useTz: true,
+    }).notNullable().defaultTo(knex.fn.now());
+
+    // ---------------------------------------------------------
+    // Aggregate version
+    //
+    // Used for optimistic concurrency / aggregate versioning.
+    // ---------------------------------------------------------
+
+    table
+      .integer("version")
+      .notNullable()
+      .defaultTo(0);
+  });
+
+  // ===========================================================
+  // Database constraints
+  // ===========================================================
+
+  await knex.raw(`
+    ALTER TABLE payments
+      ADD CONSTRAINT chk_payments_amount
+        CHECK (amount > 0),
+
+      ADD CONSTRAINT chk_payments_currency
+        CHECK (currency IN ('NGN', 'USD', 'GHS', 'KES')),
+
+      ADD CONSTRAINT chk_payments_status
+        CHECK (
+          status IN (
+            'PENDING',
+            'GATEWAY_INITIALIZED',
+            'SUCCESSFUL',
+            'HELD',
+            'RELEASED',
+            'FAILED',
+            'PARTIALLY_REFUNDED',
+            'REFUNDED',
+            'CANCELED'
+          )
+        );
+  `);
+
+  // ===========================================================
+  // Idempotency
+  // ===========================================================
+
+  /*
+   * Payment idempotency is currently handled by the application
+   * layer through the payment aggregate/request contract.
+   *
+   * If idempotency_key is part of the payment command/database
+   * contract, add it explicitly rather than silently reusing
+   * an old schema field.
+   */
+
+  // ===========================================================
+  // Gateway reconciliation indexes
+  // ===========================================================
+
+  await knex.raw(`
+    CREATE UNIQUE INDEX uq_payments_gateway_transaction_id
+      ON payments (gateway_transaction_id)
+      WHERE gateway_transaction_id IS NOT NULL;
+  `);
+
+  await knex.raw(`
+    CREATE UNIQUE INDEX uq_payments_external_reference
+      ON payments (external_reference)
+      WHERE external_reference IS NOT NULL;
+  `);
+
+  // ===========================================================
+  // Query indexes
+  // ===========================================================
+
+  await knex.raw(`
+    CREATE INDEX idx_payments_tenant_id
+      ON payments (tenant_id);
+  `);
+
+  await knex.raw(`
+    CREATE INDEX idx_payments_context
+      ON payments (context_type, context_id);
+  `);
+
+  await knex.raw(`
+    CREATE INDEX idx_payments_user_id
+      ON payments (user_id);
+  `);
+
+  await knex.raw(`
+    CREATE INDEX idx_payments_status
+      ON payments (status);
+  `);
+
+  await knex.raw(`
+    CREATE INDEX idx_payments_created_at
+      ON payments (created_at DESC);
+  `);
+
+  // ===========================================================
+  // Updated-at trigger
+  // ===========================================================
+
+  await knex.raw(`
+    CREATE OR REPLACE FUNCTION update_updated_at_column()
+    RETURNS TRIGGER AS $$
+    BEGIN
+      NEW.updated_at = NOW();
+      RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql;
+  `);
+
+  await knex.raw(`
+    CREATE TRIGGER update_payments_updated_at
+    BEFORE UPDATE ON payments
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+  `);
+}
+
+/**
+ * @param { import("knex").Knex } knex
+ * @returns { Promise<void> }
+ */
+export async function down(knex) {
+  await knex.raw(`
+    DROP TRIGGER IF EXISTS update_payments_updated_at
+    ON payments;
+  `);
+
+  await knex.schema.dropTableIfExists("payments");
+}
+
+
+===== FILE: migrations\003_create_refunds.js =====
+
+/**
+ * @param { import("knex").Knex } knex
+ * @returns { Promise<void> }
+ */
+export async function up(knex) {
+  await knex.raw('CREATE EXTENSION IF NOT EXISTS "pgcrypto";');
+
+  // Shared updated_at trigger function
+  await knex.raw(`
+    CREATE OR REPLACE FUNCTION update_updated_at_column()
+    RETURNS TRIGGER AS $$
+    BEGIN
+      NEW.updated_at = NOW();
+      RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql;
+  `);
+
+  // Refunds
+  await knex.schema.createTable("refunds", (table) => {
+    /*
+     * Identity
+     */
+    table
+      .uuid("id")
+      .primary()
+      .defaultTo(knex.raw("gen_random_uuid()"));
+
+    /*
+     * Parent payment
+     */
+    table
+      .uuid("payment_id")
+      .notNullable()
+      .references("id")
+      .inTable("payments")
+      .onDelete("RESTRICT");
+
+    /*
+     * Refund amount
+     * Stored in minor units (kobo, cents, etc.)
+     */
+    table
+      .bigInteger("amount_minor")
+      .notNullable();
+
+    table
+      .string("currency", 3)
+      .notNullable();
+
+    /*
+     * Refund reason
+     */
+    table
+      .string("reason_category", 50)
+      .notNullable()
+      .defaultTo("CUSTOMER_REQUEST");
+
+    table.text("reason");
+
+    /*
+     * Approval / Operations
+     */
+    table.uuid("processed_by_user_id");
+
+    /*
+     * Refund lifecycle
+     */
+    table
+      .text("status")
+      .notNullable()
+      .defaultTo("pending");
+
+    /*
+     * Gateway metadata
+     */
+    table.text("gateway_refund_id");
+
+    table.string("gateway_provider", 32);
+
+    table.text("error_message");
+
+    /*
+     * Idempotency
+     */
+    table
+      .text("idempotency_key")
+      .notNullable();
+
+    /*
+     * Arbitrary metadata
+     */
+    table
+      .jsonb("metadata")
+      .notNullable()
+      .defaultTo(knex.raw(`'{}'::jsonb`));
+
+    /*
+     * Audit
+     */
+    table.timestamp("processed_at", { useTz: true });
+
+    table
+      .timestamp("created_at", { useTz: true })
+      .notNullable()
+      .defaultTo(knex.fn.now());
+
+    table
+      .timestamp("updated_at", { useTz: true })
+      .notNullable()
+      .defaultTo(knex.fn.now());
+  });
+
+  /*
+   * Constraints
+   */
+  await knex.raw(`
+    ALTER TABLE refunds
+      ADD CONSTRAINT chk_refunds_amount_positive
+        CHECK (amount_minor > 0),
+
+      ADD CONSTRAINT chk_refunds_currency
+        CHECK (currency ~ '^[A-Z]{3}$'),
+
+      ADD CONSTRAINT chk_refunds_reason_category
+        CHECK (
+          reason_category IN (
+            'DUPLICATE_CHARGE',
+            'FRAUDULENT',
+            'CUSTOMER_REQUEST',
+            'SERVICE_DISRUPTION',
+            'SYSTEM_ERROR',
+            'OTHER'
+          )
+        ),
+
+      ADD CONSTRAINT chk_refunds_status
+        CHECK (
+          status IN (
+            'pending',
+            'processing',
+            'succeeded',
+            'failed',
+            'rejected'
+          )
+        );
+  `);
+
+  /*
+   * Indexes
+   */
+  await knex.raw(`
+    -- Prevent duplicate refund requests
+    CREATE UNIQUE INDEX uq_refunds_payment_idempotency
+      ON refunds (payment_id, idempotency_key);
+
+    -- One gateway refund id per provider
+    CREATE UNIQUE INDEX uq_refunds_gateway_refund_id
+      ON refunds (gateway_refund_id)
+      WHERE gateway_refund_id IS NOT NULL;
+
+    -- FK lookup
+    CREATE INDEX idx_refunds_payment_id
+      ON refunds (payment_id);
+
+    -- Operational queue
+    CREATE INDEX idx_refunds_status_created
+      ON refunds (status, created_at DESC);
+
+    -- Gateway reconciliation
+    CREATE INDEX idx_refunds_gateway_provider
+      ON refunds (gateway_provider);
+
+    -- Reporting
+    CREATE INDEX idx_refunds_processed_at
+      ON refunds (processed_at);
+  `);
+
+  /*
+   * updated_at trigger
+   */
+  await knex.raw(`
+    DROP TRIGGER IF EXISTS update_refunds_updated_at ON refunds;
+
+    CREATE TRIGGER update_refunds_updated_at
+    BEFORE UPDATE ON refunds
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+  `);
+}
+
+/**
+ * @param { import("knex").Knex } knex
+ * @returns { Promise<void> }
+ */
+export async function down(knex) {
+  await knex.raw(`
+    DROP TRIGGER IF EXISTS update_refunds_updated_at
+    ON refunds;
+  `);
+
+  await knex.schema.dropTableIfExists("refunds");
+}
+
+
+===== FILE: migrations\004_create_ledger_accounts.js =====
+
+/**
+ * @param {import("knex").Knex} knex
+ * @returns {Promise<void>}
+ */
+export async function up(knex) {
+  await knex.raw('CREATE EXTENSION IF NOT EXISTS "pgcrypto";');
+
+  /*
+   * Create ledger account type enum.
+   */
+  await knex.raw(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1
+        FROM pg_type
+        WHERE typname = 'ledger_account_type'
+      ) THEN
+        CREATE TYPE ledger_account_type AS ENUM (
+          'ASSET',
+          'LIABILITY',
+          'EQUITY',
+          'REVENUE',
+          'EXPENSE'
+        );
+      END IF;
+    END
+    $$;
+  `);
+
+  /*
+   * Ledger Accounts
+   *
+   * Chart of Accounts.
+   *
+   * Accounts are immutable in type after creation.
+   */
+  await knex.schema.createTable("ledger_accounts", (table) => {
+    /*
+     * Identity
+     */
+    table
+      .uuid("id")
+      .primary()
+      .defaultTo(knex.raw("gen_random_uuid()"));
+
+    /*
+     * Tenant boundary
+     */
+    table
+      .uuid("tenant_id")
+      .notNullable();
+
+    /*
+     * Account code
+     *
+     * Examples:
+     * 1000_CASH
+     * 4000_REVENUE
+     */
+    table
+      .string("code", 64)
+      .notNullable();
+
+    table
+      .string("name", 255)
+      .notNullable();
+
+    table
+      .specificType("type", "ledger_account_type")
+      .notNullable();
+
+    /*
+     * Currency
+     */
+    table
+      .string("currency", 3)
+      .notNullable();
+
+    /*
+     * Status
+     */
+    table
+      .boolean("is_active")
+      .notNullable()
+      .defaultTo(true);
+
+    /*
+     * Audit
+     */
+    table
+      .timestamp("created_at", { useTz: true })
+      .notNullable()
+      .defaultTo(knex.fn.now());
+
+    table
+      .timestamp("updated_at", { useTz: true })
+      .notNullable()
+      .defaultTo(knex.fn.now());
+
+    /*
+     * Constraints
+     */
+
+    // Account codes are unique within a tenant.
+    table.unique(
+      ["tenant_id", "code"],
+      "uq_account_code"
+    );
+
+    /*
+     * Indexes
+     */
+
+    table.index(
+      ["tenant_id", "type"],
+      "idx_account_type"
+    );
+
+    table.index(
+      ["tenant_id", "currency"],
+      "idx_account_currency"
+    );
+
+    table.index(
+      ["tenant_id", "is_active"],
+      "idx_account_active"
+    );
+  });
+
+  /*
+   * Required for composite foreign keys:
+   *
+   * FOREIGN KEY (tenant_id, account_id)
+   * REFERENCES ledger_accounts (tenant_id, id)
+   */
+  await knex.raw(`
+    ALTER TABLE ledger_accounts
+    ADD CONSTRAINT uq_account_tenant
+    UNIQUE (tenant_id, id);
+  `);
+}
+
+/**
+ * @param {import("knex").Knex} knex
+ * @returns {Promise<void>}
+ */
+export async function down(knex) {
+  await knex.schema.dropTableIfExists("ledger_accounts");
+
+  await knex.raw(`
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1
+        FROM pg_type
+        WHERE typname = 'ledger_account_type'
+      ) THEN
+        DROP TYPE ledger_account_type;
+      END IF;
+    END
+    $$;
+  `);
+}
+
+
+===== FILE: migrations\005_seed_chart_of_accounts.js =====
+
+/**
+ * @param {import("knex").Knex} knex
+ * @returns {Promise<void>}
+ */
+export async function up(knex) {
+  // Ensure the ledger account type enum exists.
+  await knex.raw(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1
+        FROM pg_type
+        WHERE typname = 'ledger_account_type'
+      ) THEN
+        CREATE TYPE ledger_account_type AS ENUM (
+          'ASSET',
+          'LIABILITY',
+          'EQUITY',
+          'REVENUE',
+          'EXPENSE'
+        );
+      END IF;
+    END
+    $$;
+  `);
+
+  // Default/system tenant.
+  // Replace with your application's system tenant ID.
+  const systemTenantId = "00000000-0000-0000-0000-000000000000";
+
+  await knex("ledger_accounts")
+    .insert([
+      // ---------------------------------------------------------------------
+      // Assets
+      // ---------------------------------------------------------------------
+      {
+        tenant_id: systemTenantId,
+        code: "1000_PAYSTACK_SETTLEMENT_NGN",
+        name: "Paystack Settlement Account (NGN)",
+        type: "ASSET",
+        currency: "NGN",
+        is_active: true,
+      },
+      {
+        tenant_id: systemTenantId,
+        code: "1001_FLUTTERWAVE_SETTLEMENT_NGN",
+        name: "Flutterwave Settlement Account (NGN)",
+        type: "ASSET",
+        currency: "NGN",
+        is_active: true,
+      },
+      {
+        tenant_id: systemTenantId,
+        code: "1002_STRIPE_SETTLEMENT_USD",
+        name: "Stripe Settlement Account (USD)",
+        type: "ASSET",
+        currency: "USD",
+        is_active: true,
+      },
+      {
+        tenant_id: systemTenantId,
+        code: "1010_BANK_SETTLEMENT_CLEARING",
+        name: "Interbank Settlement Clearing Account",
+        type: "ASSET",
+        currency: "NGN",
+        is_active: true,
+      },
+
+      // ---------------------------------------------------------------------
+      // Liabilities
+      // ---------------------------------------------------------------------
+      {
+        tenant_id: systemTenantId,
+        code: "2000_CUSTOMER_WALLETS_NGN",
+        name: "Customer Wallet Liabilities (NGN)",
+        type: "LIABILITY",
+        currency: "NGN",
+        is_active: true,
+      },
+      {
+        tenant_id: systemTenantId,
+        code: "2001_CUSTOMER_WALLETS_USD",
+        name: "Customer Wallet Liabilities (USD)",
+        type: "LIABILITY",
+        currency: "USD",
+        is_active: true,
+      },
+      {
+        tenant_id: systemTenantId,
+        code: "2010_PENDING_REFUNDS_PAYABLE",
+        name: "Pending Customer Refunds Payable",
+        type: "LIABILITY",
+        currency: "NGN",
+        is_active: true,
+      },
+      {
+        tenant_id: systemTenantId,
+        code: "2020_UNALLOCATED_SUSPENSE",
+        name: "Unallocated / Suspense Clearing Account",
+        type: "LIABILITY",
+        currency: "NGN",
+        is_active: true,
+      },
+
+      // ---------------------------------------------------------------------
+      // Equity
+      // ---------------------------------------------------------------------
+      {
+        tenant_id: systemTenantId,
+        code: "3000_RETAINED_EARNINGS",
+        name: "Retained Earnings",
+        type: "EQUITY",
+        currency: "NGN",
+        is_active: true,
+      },
+
+      // ---------------------------------------------------------------------
+      // Revenue
+      // ---------------------------------------------------------------------
+      {
+        tenant_id: systemTenantId,
+        code: "4000_PROCESSING_FEE_REVENUE",
+        name: "Transaction Processing Fee Revenue",
+        type: "REVENUE",
+        currency: "NGN",
+        is_active: true,
+      },
+      {
+        tenant_id: systemTenantId,
+        code: "4001_INTERCHANGE_REVENUE",
+        name: "Card Interchange Commission Revenue",
+        type: "REVENUE",
+        currency: "NGN",
+        is_active: true,
+      },
+
+      // ---------------------------------------------------------------------
+      // Expenses
+      // ---------------------------------------------------------------------
+      {
+        tenant_id: systemTenantId,
+        code: "5000_GATEWAY_PROCESSING_EXPENSE",
+        name: "Payment Gateway Partner Charges",
+        type: "EXPENSE",
+        currency: "NGN",
+        is_active: true,
+      },
+      {
+        tenant_id: systemTenantId,
+        code: "5001_INTERBANK_PAYOUT_EXPENSE",
+        name: "NIBSS / Instant Transfer Payout Fees",
+        type: "EXPENSE",
+        currency: "NGN",
+        is_active: true,
+      },
+    ])
+    .onConflict(["tenant_id", "code"])
+    .ignore();
+}
+
+/**
+ * @param {import("knex").Knex} knex
+ * @returns {Promise<void>}
+ */
+export async function down(knex) {
+  const systemTenantId = "00000000-0000-0000-0000-000000000000";
+
+  await knex("ledger_accounts")
+    .where({ tenant_id: systemTenantId })
+    .whereIn("code", [
+      "1000_PAYSTACK_SETTLEMENT_NGN",
+      "1001_FLUTTERWAVE_SETTLEMENT_NGN",
+      "1002_STRIPE_SETTLEMENT_USD",
+      "1010_BANK_SETTLEMENT_CLEARING",
+      "2000_CUSTOMER_WALLETS_NGN",
+      "2001_CUSTOMER_WALLETS_USD",
+      "2010_PENDING_REFUNDS_PAYABLE",
+      "2020_UNALLOCATED_SUSPENSE",
+      "3000_RETAINED_EARNINGS",
+      "4000_PROCESSING_FEE_REVENUE",
+      "4001_INTERCHANGE_REVENUE",
+      "5000_GATEWAY_PROCESSING_EXPENSE",
+      "5001_INTERBANK_PAYOUT_EXPENSE",
+    ])
+    .del();
+}
+
+
+===== FILE: migrations\006_create_ledger_journals.js =====
+
+/**
+ * @param {import("knex").Knex} knex
+ * @returns {Promise<void>}
+ */
+export async function up(knex) {
+  /**
+   * 3. Ledger Journals
+   *
+   * Immutable accounting transaction header.
+   * Every journal owns two or more ledger entries.
+   */
+  await knex.schema.createTable("ledger_journals", (table) => {
+    /*
+     * Identity
+     */
+    table
+      .uuid("id")
+      .primary()
+      .defaultTo(knex.raw("gen_random_uuid()"));
+
+    /*
+     * Tenant boundary
+     */
+    table
+      .uuid("tenant_id")
+      .notNullable();
+
+    /*
+     * Prevent duplicate posting
+     */
+    table
+      .string("idempotency_key", 128)
+      .notNullable();
+
+    /*
+     * Distributed tracing
+     */
+    table
+      .string("correlation_id", 128)
+      .notNullable();
+
+    table
+      .string("causation_id", 128);
+
+    /*
+     * Business reference
+     */
+    table
+      .string("reference_type", 64)
+      .notNullable();
+
+    table
+      .uuid("reference_id")
+      .notNullable();
+
+    /*
+     * Description
+     */
+    table
+      .string("description", 500)
+      .notNullable();
+
+    /*
+     * Journal currency.
+     * Every entry inside this journal
+     * must use the same currency.
+     */
+    table
+      .string("currency", 3)
+      .notNullable();
+
+    /*
+     * Arbitrary metadata
+     */
+    table
+      .jsonb("metadata")
+      .notNullable()
+      .defaultTo(knex.raw("'{}'::jsonb"));
+
+    /*
+     * Audit
+     */
+    table
+      .timestamp("posted_at", { useTz: true })
+      .notNullable()
+      .defaultTo(knex.fn.now());
+
+    table
+      .timestamp("created_at", { useTz: true })
+      .notNullable()
+      .defaultTo(knex.fn.now());
+
+    /*
+     * Reversal support
+     */
+    table
+      .uuid("reversed_by_journal_id");
+
+    table
+      .foreign("reversed_by_journal_id")
+      .references("id")
+      .inTable("ledger_journals")
+      .onDelete("RESTRICT");
+
+    /*
+     * Constraints
+     */
+
+    // Prevent duplicate journal postings.
+    table.unique(
+      ["tenant_id", "idempotency_key"],
+      "uq_journal_idempotency"
+    );
+
+    /*
+     * Indexes
+     */
+
+    table.index(
+      ["tenant_id", "reference_type", "reference_id"],
+      "idx_journal_reference"
+    );
+
+    table.index(
+      ["tenant_id", "posted_at"],
+      "idx_journal_posted"
+    );
+
+    table.index(
+      ["tenant_id", "correlation_id"],
+      "idx_journal_correlation"
+    );
+  });
+
+  /*
+   * Required for composite foreign keys:
+   *
+   * FOREIGN KEY (tenant_id, journal_id)
+   * REFERENCES ledger_journals (tenant_id, id)
+   */
+  await knex.raw(`
+    ALTER TABLE ledger_journals
+    ADD CONSTRAINT uq_journal_tenant
+    UNIQUE (tenant_id, id);
+  `);
+}
+
+/**
+ * @param {import("knex").Knex} knex
+ * @returns {Promise<void>}
+ */
+export async function down(knex) {
+  await knex.schema.dropTableIfExists("ledger_journals");
+}
+
+
+===== FILE: migrations\007_create_ledger_entries.js =====
+
+/**
+ * @param {import("knex").Knex} knex
+ * @returns {Promise<void>}
+ */
+export async function up(knex) {
+  await knex.raw('CREATE EXTENSION IF NOT EXISTS "pgcrypto";');
+
+  /*
+   * Create ledger entry type enum.
+   */
+  await knex.raw(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1
+        FROM pg_type
+        WHERE typname = 'ledger_entry_type'
+      ) THEN
+        CREATE TYPE ledger_entry_type AS ENUM (
+          'DEBIT',
+          'CREDIT'
+        );
+      END IF;
+    END
+    $$;
+  `);
+
+  /*
+   * Ledger Entries
+   *
+   * Immutable debit/credit postings.
+   * Every row represents exactly one side of an accounting transaction.
+   */
+  await knex.schema.createTable("ledger_entries", (table) => {
+    /*
+     * Identity
+     */
+    table
+      .uuid("id")
+      .primary()
+      .defaultTo(knex.raw("gen_random_uuid()"));
+
+    /*
+     * Multi-tenant boundary
+     */
+    table
+      .uuid("tenant_id")
+      .notNullable();
+
+    /*
+     * Parent journal
+     */
+    table
+      .uuid("journal_id")
+      .notNullable();
+
+    table
+      .foreign("journal_id")
+      .references("id")
+      .inTable("ledger_journals")
+      .onDelete("RESTRICT");
+
+    /*
+     * Ledger account
+     */
+    table
+      .uuid("account_id")
+      .notNullable();
+
+    table
+      .foreign("account_id")
+      .references("id")
+      .inTable("ledger_accounts")
+      .onDelete("RESTRICT");
+
+    /*
+     * Debit / Credit
+     */
+    table
+      .specificType("entry_type", "ledger_entry_type")
+      .notNullable();
+
+    /*
+     * Always positive.
+     * Direction comes from entry_type.
+     */
+    table
+      .bigInteger("amount_minor")
+      .notNullable();
+
+    /*
+     * Currency
+     */
+    table
+      .string("currency", 3)
+      .notNullable();
+
+    /*
+     * Position inside journal.
+     */
+    table
+      .smallint("line_number")
+      .notNullable();
+
+    /*
+     * Optional business metadata.
+     */
+    table
+      .jsonb("metadata")
+      .notNullable()
+      .defaultTo(knex.raw("'{}'::jsonb"));
+
+    /*
+     * Audit timestamp.
+     */
+    table
+      .timestamp("created_at", { useTz: true })
+      .notNullable()
+      .defaultTo(knex.fn.now());
+
+    /*
+     * Constraints
+     */
+
+    // Monetary amounts must always be positive.
+    table.check("amount_minor > 0");
+
+    // Each line number must be unique within a journal.
+    table.unique(
+      ["journal_id", "line_number"],
+      "uq_entry_line_number"
+    );
+
+    /*
+     * Indexes
+     */
+
+    table.index(
+      ["tenant_id", "journal_id"],
+      "idx_entries_journal"
+    );
+
+    table.index(
+      ["tenant_id", "account_id"],
+      "idx_entries_account"
+    );
+
+    table.index(
+      ["tenant_id", "account_id", "created_at"],
+      "idx_entries_account_created"
+    );
+
+    table.index(
+      ["tenant_id", "currency"],
+      "idx_entries_currency"
+    );
+  });
+}
+
+/**
+ * @param {import("knex").Knex} knex
+ * @returns {Promise<void>}
+ */
+export async function down(knex) {
+  await knex.schema.dropTableIfExists("ledger_entries");
+
+  await knex.raw(`
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1
+        FROM pg_type
+        WHERE typname = 'ledger_entry_type'
+      ) THEN
+        DROP TYPE ledger_entry_type;
+      END IF;
+    END
+    $$;
+  `);
+}
+
+
+===== FILE: migrations\008_create_ledger_constraints.js =====
+
+/**
+ * @param {import("knex").Knex} knex
+ * @returns {Promise<void>}
+ */
+export async function up(knex) {
+  /*
+   * Additional domain constraints.
+   */
+
+  await knex.raw(`
+    ALTER TABLE ledger_entries
+    ADD CONSTRAINT chk_ledger_entries_currency_format
+      CHECK (currency ~ '^[A-Z]{3}$');
+  `);
+
+  /*
+   * Additional lookup indexes.
+   */
+
+  await knex.raw(`
+    CREATE INDEX IF NOT EXISTS idx_ledger_entries_account_created
+      ON ledger_entries (account_id, created_at DESC);
+
+    CREATE INDEX IF NOT EXISTS idx_ledger_entries_journal_lookup
+      ON ledger_entries (journal_id);
+  `);
+}
+
+/**
+ * @param {import("knex").Knex} knex
+ * @returns {Promise<void>}
+ */
+export async function down(knex) {
+  await knex.raw(`
+    DROP INDEX IF EXISTS idx_ledger_entries_journal_lookup;
+  `);
+
+  await knex.raw(`
+    DROP INDEX IF EXISTS idx_ledger_entries_account_created;
+  `);
+
+  await knex.raw(`
+    ALTER TABLE ledger_entries
+      DROP CONSTRAINT IF EXISTS chk_ledger_entries_currency_format;
+  `);
+}
+
+
+===== FILE: migrations\009_create_outbox_events.js =====
+
+/**
+ * @param {import("knex").Knex} knex
+ * @returns {Promise<void>}
+ */
+export async function up(knex) {
+  // ---------------------------------------------------------------------------
+  // Extensions
+  // ---------------------------------------------------------------------------
+
+  await knex.raw(`
+    CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+  `);
+
+  // ---------------------------------------------------------------------------
+  // Enum Types
+  // ---------------------------------------------------------------------------
+
+  await knex.raw(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1
+        FROM pg_type
+        WHERE typname = 'outbox_event_status'
+      ) THEN
+        CREATE TYPE outbox_event_status AS ENUM (
+          'PENDING',
+          'PROCESSING',
+          'PROCESSED',
+          'FAILED',
+          'DEAD_LETTER'
+        );
+      END IF;
+    END
+    $$;
+  `);
+
+  // ---------------------------------------------------------------------------
+  // Outbox Events
+  // ---------------------------------------------------------------------------
+
+  await knex.raw(`
+    CREATE TABLE IF NOT EXISTS outbox_events (
+
+      id UUID NOT NULL
+        DEFAULT gen_random_uuid(),
+
+      aggregate_type VARCHAR(100) NOT NULL,
+
+      aggregate_id VARCHAR(255) NOT NULL,
+
+      event_type VARCHAR(100) NOT NULL,
+
+      payload JSONB NOT NULL,
+
+      status outbox_event_status
+        NOT NULL
+        DEFAULT 'PENDING',
+
+      retry_count INTEGER
+        NOT NULL
+        DEFAULT 0
+        CHECK (retry_count >= 0),
+
+      max_retries INTEGER
+        NOT NULL
+        DEFAULT 5
+        CHECK (max_retries > 0),
+
+      next_retry_at TIMESTAMPTZ
+        NOT NULL
+        DEFAULT NOW(),
+
+      last_error TEXT,
+
+      correlation_id UUID,
+
+      created_at TIMESTAMPTZ
+        NOT NULL
+        DEFAULT NOW(),
+
+      processed_at TIMESTAMPTZ,
+
+      PRIMARY KEY (id, created_at)
+
+    )
+    PARTITION BY RANGE (created_at);
+  `);
+
+  // ---------------------------------------------------------------------------
+  // Initial Monthly Partitions
+  // ---------------------------------------------------------------------------
+
+  await knex.raw(`
+    CREATE TABLE IF NOT EXISTS outbox_events_y2026m07
+    PARTITION OF outbox_events
+    FOR VALUES FROM ('2026-07-01 00:00:00+00')
+              TO   ('2026-08-01 00:00:00+00');
+  `);
+
+  await knex.raw(`
+    CREATE TABLE IF NOT EXISTS outbox_events_y2026m08
+    PARTITION OF outbox_events
+    FOR VALUES FROM ('2026-08-01 00:00:00+00')
+              TO   ('2026-09-01 00:00:00+00');
+  `);
+
+  await knex.raw(`
+    CREATE TABLE IF NOT EXISTS outbox_events_y2026m09
+    PARTITION OF outbox_events
+    FOR VALUES FROM ('2026-09-01 00:00:00+00')
+              TO   ('2026-10-01 00:00:00+00');
+  `);
+
+  await knex.raw(`
+    CREATE TABLE IF NOT EXISTS outbox_events_default
+    PARTITION OF outbox_events DEFAULT;
+  `);
+
+  // ---------------------------------------------------------------------------
+  // Indexes
+  // ---------------------------------------------------------------------------
+
+  await knex.raw(`
+    CREATE INDEX IF NOT EXISTS idx_outbox_events_pending_polling
+      ON outbox_events (
+        next_retry_at,
+        created_at
+      )
+      WHERE status = 'PENDING';
+  `);
+
+  await knex.raw(`
+    CREATE INDEX IF NOT EXISTS idx_outbox_events_aggregate
+      ON outbox_events (
+        aggregate_type,
+        aggregate_id
+      );
+  `);
+
+  await knex.raw(`
+    CREATE INDEX IF NOT EXISTS idx_outbox_events_correlation
+      ON outbox_events (
+        correlation_id
+      )
+      WHERE correlation_id IS NOT NULL;
+  `);
+
+  await knex.raw(`
+    CREATE INDEX IF NOT EXISTS idx_outbox_events_status_created
+      ON outbox_events (
+        status,
+        created_at
+      );
+  `);
+}
+
+/**
+ * @param {import("knex").Knex} knex
+ * @returns {Promise<void>}
+ */
+export async function down(knex) {
+  // ---------------------------------------------------------------------------
+  // Drop Partitioned Table
+  // ---------------------------------------------------------------------------
+
+  await knex.raw(`
+    DROP TABLE IF EXISTS outbox_events CASCADE;
+  `);
+
+  // ---------------------------------------------------------------------------
+  // Drop Enum
+  // ---------------------------------------------------------------------------
+
+  await knex.raw(`
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1
+        FROM pg_type
+        WHERE typname = 'outbox_event_status'
+      ) THEN
+        DROP TYPE outbox_event_status;
+      END IF;
+    END
+    $$;
+  `);
+}
+
+
+===== FILE: migrations\010_create_ledger_trigger.js =====
+
+/**
+ * @param { import("knex").Knex } knex
+ * @returns { Promise<void> }
+ */
+export async function up(knex) {
+  // Create or replace the ledger validation function.
+  // This function enforces the fundamental double-entry accounting invariants:
+  //   1. Every journal must contain at least two entries.
+  //   2. Total debits must equal total credits.
+  await knex.raw(`
+    CREATE OR REPLACE FUNCTION ledger_validate_journal()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+    DECLARE
+      v_journal_id UUID;
+      v_entry_count INTEGER;
+      v_balance BIGINT;
+    BEGIN
+      -- Determine which journal needs validation.
+      -- NEW is available for INSERT/UPDATE, OLD for DELETE.
+      v_journal_id := COALESCE(NEW.journal_id, OLD.journal_id);
+
+      -- Calculate:
+      --   â€¢ Number of entries
+      --   â€¢ Debit minus Credit balance
+      SELECT
+        COUNT(*),
+        COALESCE(
+          SUM(
+            CASE entry_type
+              WHEN 'DEBIT' THEN amount_minor
+              ELSE -amount_minor
+            END
+          ),
+          0
+        )
+      INTO
+        v_entry_count,
+        v_balance
+      FROM ledger_entries
+      WHERE journal_id = v_journal_id;
+
+      -- Allow complete journal deletion.
+      IF v_entry_count = 0 THEN
+        RETURN NULL;
+      END IF;
+
+      -- Every journal must contain at least two postings.
+      IF v_entry_count < 2 THEN
+        RAISE EXCEPTION
+          'LEDGER_001: Journal % must contain at least two ledger entries.',
+          v_journal_id;
+      END IF;
+
+      -- Total debits must equal total credits.
+      IF v_balance <> 0 THEN
+        RAISE EXCEPTION
+          'LEDGER_002: Journal % is out of balance by % minor units.',
+          v_journal_id,
+          v_balance;
+      END IF;
+
+      RETURN NULL;
+    END;
+    $$;
+  `);
+
+  // Deferred constraint trigger allows an application to insert
+  // all journal entries within a transaction before validation occurs.
+  await knex.raw(`
+    DROP TRIGGER IF EXISTS trg_ledger_validate_journal
+    ON ledger_entries;
+
+    CREATE CONSTRAINT TRIGGER trg_ledger_validate_journal
+    AFTER INSERT OR UPDATE OR DELETE
+    ON ledger_entries
+    DEFERRABLE INITIALLY DEFERRED
+    FOR EACH ROW
+    EXECUTE FUNCTION ledger_validate_journal();
+  `);
+}
+
+/**
+ * @param { import("knex").Knex } knex
+ * @returns { Promise<void> }
+ */
+export async function down(knex) {
+  await knex.raw(`
+    DROP TRIGGER IF EXISTS trg_ledger_validate_journal
+    ON ledger_entries;
+  `);
+
+  await knex.raw(`
+    DROP FUNCTION IF EXISTS ledger_validate_journal();
+  `);
+}
+
+
+===== FILE: migrations\sql\ledger_validate_currency.sql =====
+
+CREATE OR REPLACE FUNCTION ledger_validate_journal()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_journal_id UUID;
+    v_entry_count INTEGER;
+    v_balance NUMERIC(20,0);
+BEGIN
+    v_journal_id := COALESCE(NEW.journal_id, OLD.journal_id);
+
+    SELECT
+        COUNT(*),
+        COALESCE(
+            SUM(
+                CASE
+                    WHEN entry_type = 'DEBIT'
+                        THEN amount_minor
+                    ELSE
+                        -amount_minor
+                END
+            ),
+            0
+        )
+    INTO
+        v_entry_count,
+        v_balance
+    FROM ledger_entries
+    WHERE journal_id = v_journal_id;
+
+    IF v_entry_count < 2 THEN
+        RAISE EXCEPTION
+            'Journal % must contain at least two entries.',
+            v_journal_id;
+    END IF;
+
+    IF v_balance <> 0 THEN
+        RAISE EXCEPTION
+            'Journal % is out of balance by %.',
+            v_journal_id,
+            v_balance;
+    END IF;
+
+    RETURN NULL;
+END;
+$$;
+
+
+===== FILE: migrations\sql\ledger_validate_journal.sql =====
+
+CREATE OR REPLACE FUNCTION ledger_validate_journal()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_journal_id UUID;
+    v_entry_count INTEGER;
+    v_balance NUMERIC(20,0);
+BEGIN
+    v_journal_id := COALESCE(NEW.journal_id, OLD.journal_id);
+
+    SELECT
+        COUNT(*),
+        COALESCE(
+            SUM(
+                CASE
+                    WHEN entry_type = 'DEBIT'
+                        THEN amount_minor
+                    ELSE
+                        -amount_minor
+                END
+            ),
+            0
+        )
+    INTO
+        v_entry_count,
+        v_balance
+    FROM ledger_entries
+    WHERE journal_id = v_journal_id;
+
+    IF v_entry_count < 2 THEN
+        RAISE EXCEPTION
+            'Journal % must contain at least two entries.',
+            v_journal_id;
+    END IF;
+
+    IF v_balance <> 0 THEN
+        RAISE EXCEPTION
+            'Journal % is out of balance by %.',
+            v_journal_id,
+            v_balance;
+    END IF;
+
+    RETURN NULL;
+END;
+$$;
+
+
+===== FILE: migrations\sql\ledger_validate_tenant.sql =====
+
+CREATE OR REPLACE FUNCTION ledger_validate_tenant()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    journal_tenant UUID;
+    account_tenant UUID;
+BEGIN
+
+    SELECT tenant_id
+    INTO journal_tenant
+    FROM ledger_journals
+    WHERE id = NEW.journal_id;
+
+    SELECT tenant_id
+    INTO account_tenant
+    FROM ledger_accounts
+    WHERE id = NEW.account_id;
+
+    IF NEW.tenant_id <> journal_tenant THEN
+        RAISE EXCEPTION
+            'Tenant mismatch between entry and journal.';
+    END IF;
+
+    IF NEW.tenant_id <> account_tenant THEN
+        RAISE EXCEPTION
+            'Tenant mismatch between entry and account.';
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+
+===== FILE: migrations\sql\trg_validate_entry.sql =====
+
+CREATE TRIGGER trg_validate_entry
+BEFORE INSERT OR UPDATE
+ON ledger_entries
+FOR EACH ROW
+EXECUTE FUNCTION ledger_validate_currency();
+
+
+===== FILE: migrations\sql\trg_validate_entry_tenant.sql =====
+
+CREATE TRIGGER trg_validate_entry_tenant
+BEFORE INSERT OR UPDATE
+ON ledger_entries
+FOR EACH ROW
+EXECUTE FUNCTION ledger_validate_tenant();
+
+
+===== FILE: migrations\sql\trg_validate_journal.sql =====
+
+CREATE CONSTRAINT TRIGGER trg_validate_journal
+AFTER INSERT OR UPDATE OR DELETE
+ON ledger_entries
+DEFERRABLE INITIALLY DEFERRED
+FOR EACH ROW
+EXECUTE FUNCTION ledger_validate_journal();
+
+
+===== FILE: PostgresOutboxRepository.js =====
+
+/**
+ * @file src/shared/infrastructure/messaging/outbox/PostgresOutboxRepository.js
+ * @description Transactional Outbox Repository (Knex Implementation)
+ */
+
+export class PostgresOutboxRepository {
+
+    /**
+     * @param {Object} params
+     * @param {import("knex").Knex} params.db
+     */
+    constructor({ db }) {
+
+        if (!db) {
+            throw new Error(
+                "PostgresOutboxRepository requires a Knex instance."
+            );
+        }
+
+        this.db = db;
+        this.table = "outbox_events";
+
+    }
+
+    /**
+     * Persist one or more domain events.
+     *
+     * IMPORTANT:
+     * Must execute inside the same transaction
+     * as the aggregate persistence.
+     */
+    async save(events, trx = this.db) {
+
+        const items = Array.isArray(events)
+            ? events
+            : [events];
+
+        const rows = items.map((event) => {
+
+            const metadata = event.metadata ?? {};
+
+            return {
+
+                id: metadata.eventId,
+
+                aggregate_type:
+                    event.aggregateType ??
+                    metadata.aggregateType ??
+                    event.constructor.name,
+
+                aggregate_id:
+                    metadata.aggregateId,
+
+                event_type:
+                    metadata.eventName,
+
+                payload:
+                    JSON.stringify(event.payload),
+
+                status: "PENDING",
+
+                retry_count: 0,
+
+                max_retries: 5,
+
+                next_retry_at: trx.fn.now(),
+
+                correlation_id:
+                    metadata.correlationId ?? null,
+
+                created_at:
+                    metadata.occurredAt ?? trx.fn.now(),
+
+            };
+
+        });
+
+        await trx(this.table).insert(rows);
+
+    }
+
+    /**
+     * Fetch pending events and lock them.
+     */
+    async fetchAndLockPending(
+        batchSize = 100,
+        maxRetries = 5,
+    ) {
+
+        return this.db.transaction(async (trx) => {
+
+            const rows = await trx(this.table)
+                .where("status", "PENDING")
+                .where("retry_count", "<", maxRetries)
+                .where("next_retry_at", "<=", trx.fn.now())
+                .orderBy("created_at", "asc")
+                .limit(batchSize)
+                .forUpdate()
+                .skipLocked();
+
+            if (rows.length === 0) {
+                return [];
+            }
+
+            await trx(this.table)
+                .whereIn(
+                    "id",
+                    rows.map((row) => row.id),
+                )
+                .update({
+                    status: "PROCESSING",
+                });
+
+            return rows;
+
+        });
+
+    }
+
+    /**
+     * Mark event successfully dispatched.
+     */
+    async markAsDispatched(id) {
+
+        await this.db(this.table)
+            .where({ id })
+            .update({
+
+                status: "PROCESSED",
+
+                processed_at: this.db.fn.now(),
+
+            });
+
+    }
+
+    /**
+     * Increment retry counter.
+     */
+    async incrementRetry(
+        id,
+        errorMessage,
+    ) {
+
+        await this.db(this.table)
+            .where({ id })
+            .increment("retry_count", 1)
+            .update({
+
+                status: "PENDING",
+
+                last_error: errorMessage,
+
+                next_retry_at: this.db.raw(
+                    "NOW() + INTERVAL '30 seconds'"
+                ),
+
+            });
+
+    }
+
+    /**
+     * Mark event permanently failed.
+     */
+    async markAsFailed(
+        id,
+        errorMessage,
+    ) {
+
+        await this.db(this.table)
+            .where({ id })
+            .update({
+
+                status: "FAILED",
+
+                last_error: errorMessage,
+
+                processed_at: this.db.fn.now(),
+
+            });
+
+    }
+
+}
+
+
+===== FILE: registration.test.js =====
+
+
+import request from "supertest";
+import { createApp } from "../../src/app.js";
+import { createTestAuthHeaders } from "../helpers/auth.js";
+
+describe("Registration API Integration Tests", () => {
+    let app;
+    let server;
+
+    beforeAll(async () => {
+        const application = await createApp();
+
+        app = application.app;
+
+        if (!app) {
+            throw new Error("createApp() did not return an Express app.");
+        }
+
+        if (application.server) {
+            server = application.server;
+        }
+    });
+
+    afterAll(async () => {
+        if (server && typeof server.close === "function") {
+            await new Promise((resolve, reject) => {
+                server.close((error) => {
+                    if (error) {
+                        reject(error);
+                    } else {
+                        resolve();
+                    }
+                });
+            });
+        }
+    });
+
+    test("POST /registrations creates a registration", async () => {
+        const response = await request(app)
+            .post("/registrations")
+            .set(createTestAuthHeaders())
+            .send({
+                eventId: "550e8400-e29b-41d4-a716-446655440000",
+                ticketType: "standard",
+            });
+
+        // Diagnostic output to identify the cause of a failed request.
+        console.log("Registration status:", response.status);
+        console.log(
+            "Registration content type:",
+            response.headers["content-type"]
+        );
+        console.log("Registration response text:", response.text);
+        console.log(
+            "Registration response body:",
+            JSON.stringify(response.body, null, 2)
+        );
+
+        expect(response.status).toBe(201);
+        expect(response.body).toBeDefined();
+    });
+});
+
+
+
+
+===== FILE: registration\api\registration.controller.js =====
+
+import { toResponseDto } from "../mappers/RegistrationMapper.js";
+
+export class RegistrationController {
+    constructor({
+        createRegistrationUseCase,
+        getRegistrationUseCase,
+        getAllRegistrationsUseCase,
+        updateRegistrationUseCase,
+        cancelRegistrationUseCase,
+        checkInRegistrationUseCase,
+        logger,
+    }) {
+        this.createRegistrationUseCase = createRegistrationUseCase;
+        this.getRegistrationUseCase = getRegistrationUseCase;
+        this.getAllRegistrationsUseCase = getAllRegistrationsUseCase;
+        this.updateRegistrationUseCase = updateRegistrationUseCase;
+        this.cancelRegistrationUseCase = cancelRegistrationUseCase;
+        this.checkInRegistrationUseCase = checkInRegistrationUseCase;
+        this.logger = logger;
+    }
+
+    _getTracingContext(req) {
+        return {
+            correlationId:
+                req.headers["x-correlation-id"] ??
+                globalThis.crypto?.randomUUID?.() ??
+                req.id,
+            causationId: req.headers["x-request-id"] ?? null,
+        };
+    }
+
+    createRegistration = async (req, res, next) => {
+        const tracingContext = this._getTracingContext(req);
+
+        try {
+            this.logger?.debug?.(
+                "Registration request received",
+                {
+                    body: req.body,
+                    userId: req.user?.id,
+                    ...tracingContext,
+                }
+            );
+
+            const registration =
+                await this.createRegistrationUseCase.execute(
+                    {
+                        attendeeId: req.user.id,
+                        ...req.body,
+                    },
+                    req.user,
+                    tracingContext,
+                );
+
+            this.logger?.debug?.(
+                "Registration use case completed",
+                {
+                    registrationId: registration.id,
+                    ...tracingContext,
+                }
+            );
+
+            this.logger?.info?.(
+                "Registration created successfully",
+                {
+                    registrationId: registration.id,
+                    userId: req.user.id,
+                    ...tracingContext,
+                }
+            );
+
+            return res
+                .status(201)
+                .json(toResponseDto(registration));
+
+        } catch (error) {
+
+            this.logger?.error?.(
+                "Registration creation failed",
+                {
+                    error,
+                    body: req.body,
+                    userId: req.user?.id,
+                    ...tracingContext,
+                }
+            );
+
+            return next(error);
+        }
+    };
+
+    getRegistrationById = async (req, res, next) => {
+        const tracingContext = this._getTracingContext(req);
+
+        try {
+            const registration =
+                await this.getRegistrationUseCase.execute({
+                    id: req.params.id,
+                    currentUser: req.user,
+                });
+
+            return res
+                .status(200)
+                .json(toResponseDto(registration));
+
+        } catch (error) {
+
+            this.logger?.error?.(
+                "Failed to retrieve registration",
+                {
+                    error,
+                    registrationId: req.params.id,
+                    ...tracingContext,
+                }
+            );
+
+            return next(error);
+        }
+    };
+
+    getAllRegistrations = async (req, res, next) => {
+        const tracingContext = this._getTracingContext(req);
+
+        try {
+            const {
+                page = 1,
+                limit = 20,
+                ...filters
+            } = req.query;
+
+            const result =
+                await this.getAllRegistrationsUseCase.execute({
+                    page: Number(page),
+                    limit: Math.min(Number(limit), 100),
+                    filters,
+                    currentUser: req.user,
+                });
+
+            return res.status(200).json({
+                data: result.items.map(toResponseDto),
+                meta: {
+                    page: result.page,
+                    limit: result.limit,
+                    total: result.total,
+                },
+            });
+
+        } catch (error) {
+
+            this.logger?.error?.(
+                "Failed to retrieve registrations",
+                {
+                    error,
+                    query: req.query,
+                    ...tracingContext,
+                }
+            );
+
+            return next(error);
+        }
+    };
+
+    updateRegistration = async (req, res, next) => {
+        const tracingContext = this._getTracingContext(req);
+
+        try {
+            const registration =
+                await this.updateRegistrationUseCase.execute(
+                    {
+                        id: req.params.id,
+                        data: req.body,
+                        currentUser: req.user,
+                    },
+                    tracingContext,
+                );
+
+            this.logger?.info?.(
+                "Registration updated",
+                {
+                    registrationId: req.params.id,
+                    ...tracingContext,
+                }
+            );
+
+            return res
+                .status(200)
+                .json(toResponseDto(registration));
+
+        } catch (error) {
+
+            this.logger?.error?.(
+                "Registration update failed",
+                {
+                    error,
+                    registrationId: req.params.id,
+                    ...tracingContext,
+                }
+            );
+
+            return next(error);
+        }
+    };
+
+    checkInRegistration = async (req, res, next) => {
+        const tracingContext = this._getTracingContext(req);
+
+        try {
+            const registration =
+                await this.checkInRegistrationUseCase.execute(
+                    {
+                        id: req.params.id,
+                        currentUser: req.user,
+                    },
+                    tracingContext,
+                );
+
+            this.logger?.info?.(
+                "Registration checked in",
+                {
+                    registrationId: req.params.id,
+                    ...tracingContext,
+                }
+            );
+
+            return res
+                .status(200)
+                .json(toResponseDto(registration));
+
+        } catch (error) {
+
+            this.logger?.error?.(
+                "Check-in failed",
+                {
+                    error,
+                    registrationId: req.params.id,
+                    ...tracingContext,
+                }
+            );
+
+            return next(error);
+        }
+    };
+
+    cancelRegistration = async (req, res, next) => {
+        const tracingContext = this._getTracingContext(req);
+
+        try {
+            await this.cancelRegistrationUseCase.execute(
+                {
+                    id: req.params.id,
+                    currentUser: req.user,
+                },
+                tracingContext,
+            );
+
+            this.logger?.info?.(
+                "Registration cancelled",
+                {
+                    registrationId: req.params.id,
+                    ...tracingContext,
+                }
+            );
+
+            return res.sendStatus(204);
+
+        } catch (error) {
+
+            this.logger?.error?.(
+                "Registration cancellation failed",
+                {
+                    error,
+                    registrationId: req.params.id,
+                    ...tracingContext,
+                }
+            );
+
+            return next(error);
+        }
+    };
+}
+
+
+===== FILE: registration\api\registration.route.js =====
+
+
+import { Router } from "express";
+import { validate } from "../../../shared/infrastructure/middleware/validate.js";
+
+import {
+    createRegistrationSchema,
+    updateRegistrationSchema,
+    registrationIdSchema,
+    registrationQuerySchema,
+    checkInRegistrationSchema,
+    cancelRegistrationSchema,
+} from "./validators/registration.schema.js";
+
+export function getRegistrationRoutes(
+    registrationController,
+    authenticateMiddleware,
+) {
+    if (typeof authenticateMiddleware !== "function") {
+        throw new TypeError(
+            "Registration routes require an authentication middleware.",
+        );
+    }
+
+    const router = Router();
+
+    // Protect every registration endpoint.
+    router.use(authenticateMiddleware);
+
+    router.post(
+        "/",
+        validate(createRegistrationSchema, "body"),
+        registrationController.createRegistration,
+    );
+
+    router.get(
+        "/",
+        validate(registrationQuerySchema, "query"),
+        registrationController.getAllRegistrations,
+    );
+
+    router.get(
+        "/:id",
+        validate(registrationIdSchema, "params"),
+        registrationController.getRegistrationById,
+    );
+
+    router.patch(
+        "/:id",
+        validate(registrationIdSchema, "params"),
+        validate(updateRegistrationSchema, "body"),
+        registrationController.updateRegistration,
+    );
+
+    router.post(
+        "/:id/check-in",
+        validate(registrationIdSchema, "params"),
+        validate(checkInRegistrationSchema, "body"),
+        registrationController.checkInRegistration,
+    );
+
+    router.delete(
+        "/:id",
+        validate(registrationIdSchema, "params"),
+        validate(cancelRegistrationSchema, "body"),
+        registrationController.cancelRegistration,
+    );
+
+    return router;
+}
+
+
+
+===== FILE: registration\api\validators\registration.schema.js =====
+
+// modules/registration/validators/registration.schema.js
+
+import { z } from 'zod';
+
+const uuidSchema = z.string().uuid('Invalid UUID format.');
+
+const ticketTypes = [
+  'standard',
+  'vip',
+  'student',
+  'speaker',
+  'sponsor',
+];
+
+const registrationStatuses = [
+  'pending',
+  'confirmed',
+  'cancelled',
+  'checked_in',
+];
+
+/**
+ * POST /registrations
+ */
+export const createRegistrationSchema = z.object({
+  body: z.object({
+    eventId: uuidSchema,
+
+    ticketType: z.enum(ticketTypes),
+
+    notes: z
+      .string()
+      .trim()
+      .max(500, 'Notes cannot exceed 500 characters.')
+      .optional(),
+
+    dietaryRequirements: z
+      .string()
+      .trim()
+      .max(255, 'Dietary requirements cannot exceed 255 characters.')
+      .optional(),
+
+    specialAssistance: z
+      .string()
+      .trim()
+      .max(255, 'Special assistance cannot exceed 255 characters.')
+      .optional(),
+  }),
+});
+
+/**
+ * PATCH /registrations/:id
+ */
+export const updateRegistrationSchema = z.object({
+  body: z.object({
+    ticketType: z.enum(ticketTypes).optional(),
+
+    notes: z
+      .string()
+      .trim()
+      .max(500, 'Notes cannot exceed 500 characters.')
+      .optional(),
+
+    dietaryRequirements: z
+      .string()
+      .trim()
+      .max(255, 'Dietary requirements cannot exceed 255 characters.')
+      .optional(),
+
+    specialAssistance: z
+      .string()
+      .trim()
+      .max(255, 'Special assistance cannot exceed 255 characters.')
+      .optional(),
+  }),
+});
+
+/**
+ * Route parameter validation
+ */
+export const registrationIdSchema = z.object({
+  params: z.object({
+    id: uuidSchema,
+  }),
+});
+
+/**
+ * GET /registrations
+ */
+export const registrationQuerySchema = z.object({
+  query: z.object({
+    page: z.coerce.number().int().min(1).default(1),
+
+    limit: z.coerce.number().int().min(1).max(100).default(20),
+
+    eventId: uuidSchema.optional(),
+
+    attendeeId: uuidSchema.optional(),
+
+    status: z.enum(registrationStatuses).optional(),
+  }),
+});
+
+/**
+ * POST /registrations/:id/check-in
+ */
+export const checkInRegistrationSchema = z.object({
+  params: z.object({
+    id: uuidSchema,
+  }),
+});
+
+/**
+ * DELETE /registrations/:id
+ */
+export const cancelRegistrationSchema = z.object({
+  params: z.object({
+    id: uuidSchema,
+  }),
+});
+
+/**
+ * GET /registrations/me
+ * No validation required because the authenticated
+ * user's ID comes from req.user after auth middleware.
+ */
+export const myRegistrationsSchema = z.object({
+  query: z.object({
+    page: z.coerce.number().int().min(1).default(1),
+
+    limit: z.coerce.number().int().min(1).max(100).default(20),
+
+    status: z.enum(registrationStatuses).optional(),
+  }),
+});
+
+
+===== FILE: registration\application\user-cases\CancelRegistrationUseCase.js =====
+
+import { NotFoundError } from '../../../../shared/domain/error/DomainErrors.js';
+
+export class CancelRegistrationUseCase {
+  constructor({ registrationRepository, conferenceRepository, outboxRepository, transactionManager }) {
+    this.registrationRepository = registrationRepository;
+    this.conferenceRepository = conferenceRepository;
+    this.outboxRepository = outboxRepository;
+    this.transactionManager = transactionManager;
+  }
+
+  async execute({ registrationId, currentUser }) {
+    if (!registrationId) {
+      throw new NotFoundError("Registration identifier is required.");
+    }
+
+    return await this.transactionManager.runInTransaction(async (tx) => {
+      const registration = await this.registrationRepository.findByIdForUpdate(registrationId, tx);
+      if (!registration) {
+        throw new NotFoundError("Registration not found.");
+      }
+
+      // Authorization: Admin bypass, else check ownership
+      if (!currentUser.isAdmin()) {
+        if (currentUser.isAttendee() && registration.userId !== currentUser.id) {
+          throw new NotFoundError("Registration not found."); // Blind-wall
+        }
+        if (currentUser.isOrganizer()) {
+          const isOwner = await this.conferenceRepository.isOrganizerOf(
+            registration.conferenceId, 
+            currentUser.id, 
+            tx
+          );
+          if (!isOwner) {
+            throw new NotFoundError("Registration not found."); // Blind-wall
+          }
+        }
+      }
+
+      const conference = await this.conferenceRepository.findById(registration.conferenceId, tx);
+      if (!conference) {
+        throw new NotFoundError("Associated conference not found.");
+      }
+
+      if (conference.isPastCancellationDeadline?.() || conference.isPastRegistrationDeadline()) {
+        throw new BusinessRuleValidationError(
+          "Event lifecycle closed. Cancellations no longer permitted."
+        );
+      }
+
+      registration.cancel(); // Domain state machine + emits event
+
+      await this.registrationRepository.update(registration, tx);
+      await this.outboxRepository.saveMany(registration.pullDomainEvents(), tx);
+      
+      // Return void. Controller handles HTTP.
+    });
+  }
+}
+
+
+===== FILE: registration\application\user-cases\CheckInRegistrationUseCase.js =====
+
+import { NotFoundError, UnauthorizedError, BusinessRuleValidationError } from '../../../../shared/domain/error/DomainErrors.js';
+
+export class CheckInRegistrationUseCase {
+  constructor({ registrationRepository, conferenceRepository, outboxRepository, transactionManager }) {
+    this.registrationRepository = registrationRepository;
+    this.conferenceRepository = conferenceRepository;
+    this.outboxRepository = outboxRepository;
+    this.transactionManager = transactionManager;
+  }
+
+  async execute({ registrationId, currentUser }) {
+    if (!registrationId) {
+      throw new NotFoundError("Registration identifier is required.");
+    }
+
+    if (!currentUser.isAdmin() && !currentUser.isOrganizer()) {
+      throw new UnauthorizedError("Only organizers or administrators can check in attendees.");
+    }
+
+    return await this.transactionManager.runInTransaction(async (tx) => {
+      const registration = await this.registrationRepository.findByIdForUpdate(registrationId, tx);
+      if (!registration) {
+        throw new NotFoundError("Registration not found.");
+      }
+
+      // Multi-tenant guard
+      if (currentUser.isOrganizer()) {
+        const isOwner = await this.conferenceRepository.isOrganizerOf(
+          registration.conferenceId, 
+          currentUser.id, 
+          tx
+        );
+        if (!isOwner) {
+          throw new UnauthorizedError("You do not have permission to manage this event's roster.");
+        }
+      }
+
+      // Temporal guard
+      const conference = await this.conferenceRepository.findById(registration.conferenceId, tx);
+      if (!conference.isCheckInWindowOpen()) {
+        throw new BusinessRuleValidationError(
+          `Check-in is only available from ${conference.checkInOpensAt} to ${conference.checkInClosesAt}`
+        );
+      }
+
+      // Idempotent domain mutation
+      const wasAlreadyCheckedIn = registration.isCheckedIn();
+      registration.checkIn({ conference, checkedInBy: currentUser.id });
+
+      await this.registrationRepository.update(registration, tx);
+      await this.outboxRepository.saveMany(registration.pullDomainEvents(), tx);
+
+      return registration; // Return entity, not HTTP payload
+    });
+  }
+}
+
+
+===== FILE: registration\application\user-cases\CreateRegistrationUseCase.js =====
+
+import {
+  NotFoundError,
+  BusinessRuleValidationError,
+} from "../../../../shared/domain/error/DomainErrors.js";
+import { Registration } from "../../domain/entities/Registration.js";
+
+export class CreateRegistrationUseCase {
+  constructor({
+    registrationRepository,
+    conferenceRepository,
+    outboxRepository,
+    uuidService,
+    transactionManager,
+    logger,
+  }) {
+    this.registrationRepository = registrationRepository;
+    this.conferenceRepository = conferenceRepository;
+    this.outboxRepository = outboxRepository;
+    this.uuidService = uuidService;
+    this.transactionManager = transactionManager;
+    this.logger = logger.child({
+      useCase: "CreateRegistrationUseCase",
+    });
+  }
+
+  async execute(payload, currentUser, tracingContext = {}) {
+    const {
+      conferenceId,
+      ticketType,
+      notes,
+      dietaryRequirements,
+      specialAssistance,
+    } = payload;
+
+    const userId = currentUser.id;
+
+    this.logger.info("Creating registration", {
+      conferenceId,
+      userId,
+      ticketType,
+      ...tracingContext,
+    });
+
+    try {
+      return await this.transactionManager.runInTransaction(async (tx) => {
+        this.logger.debug("Loading conference", {
+          conferenceId,
+          ...tracingContext,
+        });
+
+        const conference =
+          await this.conferenceRepository.findByIdWithLock(
+            conferenceId,
+            tx,
+          );
+
+        if (!conference) {
+          this.logger.warn("Conference not found", {
+            conferenceId,
+            userId,
+            ...tracingContext,
+          });
+
+          throw new NotFoundError(
+            "Conference not found."
+          );
+        }
+
+        if (conference.isPastRegistrationDeadline()) {
+          this.logger.warn("Registration deadline passed", {
+            conferenceId,
+            deadline: conference.registrationDeadline,
+            ...tracingContext,
+          });
+
+          throw new BusinessRuleValidationError(
+            "Registration for this conference has closed."
+          );
+        }
+
+        this.logger.debug("Checking duplicate registration", {
+          conferenceId,
+          userId,
+          ...tracingContext,
+        });
+
+        const isAlreadyRegistered =
+          await this.registrationRepository.existsByConferenceAndUser(
+            conferenceId,
+            userId,
+            tx,
+          );
+
+        if (isAlreadyRegistered) {
+          this.logger.warn("Duplicate registration attempt", {
+            conferenceId,
+            userId,
+            ...tracingContext,
+          });
+
+          throw new BusinessRuleValidationError(
+            "You have already registered for this conference."
+          );
+        }
+
+        const registration =
+          Registration.createPending({
+            id: this.uuidService.generate(),
+            conferenceId,
+            userId,
+            ticketType,
+            conference,
+            notes,
+            dietaryRequirements,
+            specialAssistance,
+          });
+
+        this.logger.debug("Saving registration", {
+          registrationId: registration.id,
+          ...tracingContext,
+        });
+
+        await this.registrationRepository.save(
+          registration,
+          tx,
+        );
+
+        this.logger.debug("Updating conference", {
+          conferenceId,
+          ...tracingContext,
+        });
+
+        await this.conferenceRepository.update(
+          conference,
+          tx,
+        );
+
+        const events = registration.pullDomainEvents();
+
+        this.logger.debug("Saving outbox events", {
+          registrationId: registration.id,
+          eventCount: events.length,
+          ...tracingContext,
+        });
+
+        await this.outboxRepository.saveMany(
+          events,
+          tx,
+        );
+
+        this.logger.info(
+          "Registration created successfully",
+          {
+            registrationId: registration.id,
+            conferenceId,
+            userId,
+            ticketType: registration.ticketType,
+            ...tracingContext,
+          }
+        );
+
+        return registration;
+      });
+    } catch (err) {
+      this.logger.error(
+        "Failed to create registration",
+        {
+          conferenceId,
+          userId,
+          error: err.message,
+          stack: err.stack,
+          ...tracingContext,
+        }
+      );
+
+      throw err;
+    }
+  }
+}
+
+
+===== FILE: registration\application\user-cases\GetAllRegistrationsUseCase.js =====
+
+import { UnauthorizedError, NotFoundError } from '../../../../shared/domain/error/DomainErrors.js';
+
+export class GetAllRegistrationsUseCase {
+  constructor({ registrationRepository, conferenceRepository }) {
+    this.registrationRepository = registrationRepository;
+    this.conferenceRepository = conferenceRepository;
+  }
+
+  async execute(filters = {}, currentUser) {
+    const {
+      page = 1,
+      limit = 20,
+      conferenceId,
+      userId,
+      status,
+      ticketTier,
+      sortBy = 'createdAt',
+      sortOrder = 'DESC'
+    } = filters;
+
+    // 1. Authorization & Scoping
+    let scopedUserId = userId;
+    let scopedConferenceId = conferenceId;
+
+    if (!currentUser.isAdmin()) {
+      if (currentUser.isAttendee()) {
+        scopedUserId = currentUser.id; // Force own data
+        scopedConferenceId = undefined; // Attendees don't filter by conference
+      } else if (currentUser.isOrganizer()) {
+        if (!conferenceId) {
+          throw new UnauthorizedError("Organizers must provide conferenceId filter.");
+        }
+        const isOwner = await this.conferenceRepository.isOrganizerOf(conferenceId, currentUser.id);
+        if (!isOwner) {
+          throw new NotFoundError("Conference not found."); // Blind-wall
+        }
+        scopedUserId = undefined; // Organizer sees all users in their conference
+      } else {
+        throw new UnauthorizedError("Unknown user role.");
+      }
+    }
+
+    // 2. Input sanitization
+    const sanitizedPage = Math.max(1, Math.floor(Number(page)) || 1);
+    const sanitizedLimit = Math.min(Math.max(1, Math.floor(Number(limit)) || 20), 100);
+
+    // 3. Whitelisting
+    const ALLOWED_SORT_FIELDS = ['createdAt', 'status', 'updatedAt'];
+    const ALLOWED_STATUSES = ['PENDING', 'CONFIRMED', 'CANCELLED', 'CHECKED_IN', 'WAITLISTED'];
+    const ALLOWED_TICKET_TIERS = ['STANDARD', 'VIP', 'SPEAKER'];
+
+    const finalSortBy = ALLOWED_SORT_FIELDS.includes(sortBy) ? sortBy : 'createdAt';
+    const finalSortOrder = String(sortOrder || 'DESC').toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    const finalStatus = ALLOWED_STATUSES.includes(status) ? status : undefined;
+    const finalTicketTier = ALLOWED_TICKET_TIERS.includes(ticketTier) ? ticketTier : undefined;
+
+    // 4. Query
+    const queryFilters = {
+      page: sanitizedPage,
+      limit: sanitizedLimit,
+      conferenceId: scopedConferenceId,
+      userId: scopedUserId,
+      status: finalStatus,
+      ticketTier: finalTicketTier,
+      sortBy: finalSortBy,
+      sortOrder: finalSortOrder
+    };
+
+    const result = await this.registrationRepository.findAll(queryFilters);
+
+    return {
+      items: result.items,
+      page: sanitizedPage,
+      limit: sanitizedLimit,
+      totalItems: result.totalItems,
+      totalPages: Math.ceil(result.totalItems / sanitizedLimit)
+    };
+  }
+}
+
+
+===== FILE: registration\application\user-cases\GetRegistrationUseCase.js =====
+
+import { NotFoundError, UnauthorizedError } from '../../../../shared/domain/error/DomainErrors.js';
+
+export class GetRegistrationUseCase {
+  constructor({ registrationRepository }) {
+    this.registrationRepository = registrationRepository;
+  }
+
+  async execute({ registrationId } = {}, currentUser) {
+    if (!registrationId) {
+      throw new NotFoundError("Registration identifier is required.");
+    }
+
+    const registration = await this.registrationRepository.findById(registrationId);
+    if (!registration) {
+      throw new NotFoundError("Registration not found.");
+    }
+
+    // Authorization
+    if (!currentUser.isAdmin()) {
+      if (currentUser.isAttendee()) {
+        if (registration.userId !== currentUser.id) {
+          throw new NotFoundError("Registration not found."); // Blind-wall
+        }
+      } else if (currentUser.isOrganizer()) {
+        // Use cached permissions - no DB hit
+        if (!currentUser.organizedConferenceIds?.includes(registration.conferenceId)) {
+          throw new UnauthorizedError("Unauthorized: This registration belongs to an unmanaged event.");
+        }
+      } else {
+        throw new UnauthorizedError("Unknown user role.");
+      }
+    }
+
+    return registration; // Return entity, controller maps to DTO
+  }
+}
+
+
+===== FILE: registration\application\user-cases\UpdateRegistrationUseCase.js =====
+
+import { NotFoundError, UnauthorizedError, BusinessRuleValidationError } from '../../../../shared/domain/error/DomainErrors.js';
+
+export class UpdateRegistrationUseCase {
+  constructor({ registrationRepository, conferenceRepository, outboxRepository, transactionManager }) {
+    this.registrationRepository = registrationRepository;
+    this.conferenceRepository = conferenceRepository;
+    this.outboxRepository = outboxRepository;
+    this.transactionManager = transactionManager;
+  }
+
+  async execute({ registrationId, ticketTier, attendeeNotes } = {}, currentUser) {
+    if (!registrationId) {
+      throw new NotFoundError("Registration identifier is required.");
+    }
+
+    return await this.transactionManager.runInTransaction(async (tx) => {
+      // 1. Lock registration first to serialize concurrent edits
+      const registration = await this.registrationRepository.findByIdForUpdate(registrationId, tx);
+      if (!registration) {
+        throw new NotFoundError("Registration not found.");
+      }
+
+      // 2. Authorization - blind-wall for attendees and organizers
+      if (!currentUser.isAdmin()) {
+        if (currentUser.isAttendee()) {
+          if (registration.userId !== currentUser.id) {
+            throw new NotFoundError("Registration not found.");
+          }
+          if (ticketTier && ticketTier !== registration.ticketTier) {
+            throw new UnauthorizedError("Attendees cannot modify ticket tiers. Use upgrade workflow.");
+          }
+          if (registration.status === 'CHECKED_IN') {
+            throw new BusinessRuleValidationError("Cannot modify registration after check-in.");
+          }
+        } else if (currentUser.isOrganizer()) {
+          const isOwner = await this.conferenceRepository.isOrganizerOf(registration.conferenceId, currentUser.id, tx);
+          if (!isOwner) {
+            throw new NotFoundError("Registration not found."); // Blind-wall
+          }
+        } else {
+          throw new UnauthorizedError("Invalid execution context.");
+        }
+      }
+
+      // 3. Lock conference for capacity checks
+      const conference = await this.conferenceRepository.findByIdWithLock(registration.conferenceId, tx);
+      if (!conference) {
+        throw new NotFoundError("Associated conference not found.");
+      }
+
+      if (conference.isPastRegistrationDeadline()) {
+        throw new BusinessRuleValidationError("Event lifecycle closed. Modifications disabled.");
+      }
+
+      // 4. Tier capacity check if changing
+      if (ticketTier && ticketTier !== registration.ticketTier) {
+        const currentTierCount = await this.registrationRepository.countActiveRegistrationsByTier(
+          registration.conferenceId, 
+          ticketTier, 
+          tx
+        );
+        if (conference.isTierFullyBooked(ticketTier, currentTierCount)) {
+          throw new BusinessRuleValidationError(`Ticket tier [${ticketTier}] is sold out.`);
+        }
+      }
+
+      // 5. Idempotency check
+      if (registration.ticketTier === ticketTier && registration.attendeeNotes === attendeeNotes) {
+        return registration; // No-op
+      }
+
+      // 6. Domain mutation
+      registration.updateDetails({ ticketTier, attendeeNotes });
+
+      // 7. Atomic persist
+      await this.registrationRepository.save(registration, tx);
+      await this.outboxRepository.saveMany(registration.pullDomainEvents(), tx);
+
+      return registration;
+    });
+  }
+}
+
+
+===== FILE: registration\domain\entities\Registration.js =====
+
+import { AggregateRoot } from "../../../../shared/domain/AggregateRoot.js";
+import { DomainInvariantError } from "../../../../shared/domain/error/DomainErrors.js";
+
+const VALID_STATUSES = new Set([
+  "PENDING",
+  "CONFIRMED",
+  "CANCELLED",
+  "CHECKED_IN",
+]);
+
+export class Registration extends AggregateRoot {
+  constructor({
+    id,
+    conferenceId,
+    userId,
+    ticketTier,
+    status = "PENDING",
+    attendeeNotes = null,
+    paymentId = null,
+    version = 0,
+    createdAt = new Date(),
+    updatedAt = new Date(),
+    deletedAt = null,
+  }) {
+    super(id);
+
+    if (!conferenceId) {
+      throw new DomainInvariantError("conferenceId is required.");
+    }
+
+    if (!userId) {
+      throw new DomainInvariantError("userId is required.");
+    }
+
+    if (!ticketTier) {
+      throw new DomainInvariantError("ticketTier is required.");
+    }
+
+    if (!VALID_STATUSES.has(status)) {
+      throw new DomainInvariantError(
+        `Invalid registration status '${status}'.`
+      );
+    }
+
+    this.id = id;
+    this.conferenceId = conferenceId;
+    this.userId = userId;
+    this.ticketTier = ticketTier;
+    this.status = status;
+    this.attendeeNotes = attendeeNotes;
+    this.paymentId = paymentId;
+
+    this.version = version;
+
+    this.createdAt = new Date(createdAt);
+    this.updatedAt = new Date(updatedAt);
+    this.deletedAt = deletedAt ? new Date(deletedAt) : null;
+  }
+
+  confirm(paymentId) {
+    if (this.status !== "PENDING") {
+      throw new DomainInvariantError(
+        "Only pending registrations can be confirmed."
+      );
+    }
+
+    this.status = "CONFIRMED";
+    this.paymentId = paymentId;
+    this.updatedAt = new Date();
+  }
+
+  cancel() {
+    if (this.status === "CANCELLED") {
+      throw new DomainInvariantError(
+        "Registration already cancelled."
+      );
+    }
+
+    if (this.status === "CHECKED_IN") {
+      throw new DomainInvariantError(
+        "Checked-in registrations cannot be cancelled."
+      );
+    }
+
+    this.status = "CANCELLED";
+    this.updatedAt = new Date();
+  }
+
+  checkIn() {
+    if (this.status !== "CONFIRMED") {
+      throw new DomainInvariantError(
+        "Only confirmed registrations may check in."
+      );
+    }
+
+    this.status = "CHECKED_IN";
+    this.updatedAt = new Date();
+  }
+
+  updateNotes(notes) {
+    this.attendeeNotes = notes;
+    this.updatedAt = new Date();
+  }
+
+  markDeleted() {
+    this.deletedAt = new Date();
+    this.updatedAt = new Date();
+  }
+
+  isDeleted() {
+    return this.deletedAt !== null;
+  }
+
+  toJSON() {
+    return {
+      id: this.id,
+      conferenceId: this.conferenceId,
+      userId: this.userId,
+      ticketTier: this.ticketTier,
+      status: this.status,
+      attendeeNotes: this.attendeeNotes,
+      paymentId: this.paymentId,
+      version: this.version,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
+      deletedAt: this.deletedAt,
+    };
+  }
+}
+
+
+===== FILE: registration\domain\entities\RegistrationCancelledEvent.js =====
+
+import { DomainEvent } from "../../../../shared/domain/DomainEvent.js";
+import { DomainInvariantError } from "../../../../shared/domain/error/DomainErrors.js";
+
+const CANCELLATION_REASONS = new Set([
+  'user_request',
+  'payment_failed', 
+  'admin_action',
+  'conference_cancelled',
+  'fraud_suspected'
+]);
+
+export class RegistrationCancelledEvent extends DomainEvent {
+  constructor({
+    registrationId,
+    conferenceId,
+    userId,
+    reason, // required, must be enum
+    occurredAt, // required, no default
+    correlationId = null,
+    causationId = null
+  }) {
+    if (!registrationId) throw new DomainInvariantError("RegistrationCancelledEvent: registrationId required.");
+    if (!conferenceId) throw new DomainInvariantError("RegistrationCancelledEvent: conferenceId required.");
+    if (!userId) throw new DomainInvariantError("RegistrationCancelledEvent: userId required.");
+    if (!reason) throw new DomainInvariantError("RegistrationCancelledEvent: reason required.");
+    if (!CANCELLATION_REASONS.has(reason)) {
+      throw new DomainInvariantError(`RegistrationCancelledEvent: invalid reason '${reason}'`);
+    }
+    if (!occurredAt) throw new DomainInvariantError("RegistrationCancelledEvent: occurredAt required.");
+
+    const parsedOccurred = new Date(occurredAt);
+    if (Number.isNaN(parsedOccurred.getTime())) {
+      throw new DomainInvariantError("RegistrationCancelledEvent: invalid occurredAt");
+    }
+
+    super({
+      eventName: "registration.cancelled",
+      eventVersion: 1,
+      aggregateId: registrationId,
+      occurredAt: parsedOccurred,
+      correlationId,
+      causationId
+    });
+
+    this.payload = Object.freeze({
+      registrationId,
+      conferenceId,
+      userId,
+      reason // no normalization - record what aggregate sent
+    });
+
+    this.freezeEvent();
+  }
+
+  static fromJSON(json) {
+    if (!json?.payload) {
+      throw new DomainInvariantError("RegistrationCancelledEvent: Cannot rehydrate from empty payload.");
+    }
+    if (json.aggregateId !== json.payload.registrationId) {
+      throw new DomainInvariantError("RegistrationCancelledEvent: aggregateId mismatch in persisted data.");
+    }
+
+    return new RegistrationCancelledEvent({
+      registrationId: json.payload.registrationId,
+      conferenceId: json.payload.conferenceId,
+      userId: json.payload.userId,
+      reason: json.payload.reason,
+      occurredAt: json.metadata.occurredAt,
+      correlationId: json.metadata.correlationId,
+      causationId: json.metadata.causationId
+    });
+  }
+}
+
+
+===== FILE: registration\domain\events\AttendeeCheckedInEvent.js =====
+
+import { DomainEvent } from '../../../../shared/DomainEvent.js';
+
+export class AttendeeCheckedInEvent extends DomainEvent {
+  /**
+   * @param {Object} params
+   * @param {string} params.registrationId - Unique identifier of the checked-in registration
+   * @param {string} params.conferenceId - Associated conference identifier
+   * @param {string} params.userId - Associated attendee user identifier
+   * @param {Date} [params.checkedInAt] - Precise timestamp of physical arrival
+   * @param {string} [params.eventId] - Trace-aware event tracking ID
+   * @param {Date} [params.occurredAt] - Generation timestamp
+   * @param {string} [params.correlationId] - Distributed system correlation tracer
+   * @param {string} [params.causationId] - Distributed system causation tracer
+   */
+  constructor({
+    registrationId,
+    conferenceId,
+    userId,
+    checkedInAt = new Date(),
+    eventId,
+    occurredAt = new Date(),
+    correlationId,
+    causationId
+  }) {
+    super({
+      eventName: 'attendee.checked-in',
+      eventVersion: 1,
+      eventId,
+      occurredAt,
+      correlationId,
+      causationId
+    });
+
+    this.payload = Object.freeze({
+      registrationId,
+      conferenceId,
+      userId,
+      checkedInAt
+    });
+
+    Object.freeze(this);
+  }
+}
+
+
+===== FILE: registration\domain\events\RegistrationCancelledEvent.js =====
+
+// src/modules/registration/domain/events/RegistrationCancelledEvent.js
+
+import { DomainEvent } from "../../../../shared/domain/DomainEvent.js"; // Adjust relative path as needed
+import { DomainInvariantError } from "../../../../shared/domain/error/DomainErrors.js";
+
+/**
+ * Domain Event fired immediately after an existing registration aggregate 
+ * transitions successfully into the 'cancelled' state.
+ * Pure Immutable Domain Event.
+ */
+export class RegistrationCancelledEvent extends DomainEvent {
+  /**
+   * @param {Object} data
+   * @param {string} data.registrationId - Unique identifier of the cancelled registration
+   * @param {string} data.conferenceId - Associated conference identifier
+   * @param {string} data.userId - Associated attendee user identifier
+   * @param {string} [data.reason] - Optional cancellation reason context
+   * @param {string|null} [data.correlationId=null] - Distributed tracing token
+   * @param {string|null} [data.causationId=null] - Causal trace origin token
+   * @param {Date|string} [data.occurredAt] - Explicit creation date hook
+   */
+  constructor({
+    registrationId,
+    conferenceId,
+    userId,
+    reason = "User requested cancellation",
+    correlationId = null,
+    causationId = null,
+    occurredAt = new Date()
+  }) {
+    // 1. Assert structural mandatory presence
+    if (!registrationId) {
+      throw new DomainInvariantError("RegistrationCancelledEvent: missing parameter [registrationId].");
+    }
+    if (!conferenceId) {
+      throw new DomainInvariantError("RegistrationCancelledEvent: missing parameter [conferenceId].");
+    }
+    if (!userId) {
+      throw new DomainInvariantError("RegistrationCancelledEvent: missing parameter [userId].");
+    }
+
+    const parsedOccurred = occurredAt instanceof Date ? occurredAt : new Date(occurredAt);
+    if (Number.isNaN(parsedOccurred.getTime())) {
+      throw new DomainInvariantError("RegistrationCancelledEvent: Invalid occurredAt timestamp provided.");
+    }
+
+    const normalizedReason = typeof reason === "string" && reason.trim() !== "" 
+      ? reason.trim() 
+      : "User requested cancellation";
+
+    // 2. Delegate Envelope, Identity, and Tracing Metadata to Parent Base Class
+    super({
+      eventName: "registration.cancelled",
+      eventVersion: 1,
+      aggregateId: registrationId,
+      occurredAt: parsedOccurred,
+      correlationId,
+      causationId
+    });
+
+    // 3. Formulate Pure Domain Event Payload
+    this.payload = {
+      registrationId,
+      conferenceId,
+      userId,
+      reason: normalizedReason
+    };
+
+    // 4. Single atomic top-down deep freeze pass handled by base class utility
+    this.freezeEvent();
+  }
+
+  /**
+   * Standard contract serializer method.
+   * Maps internal structures to raw JSON structures for the outbox table or brokers.
+   * 
+   * @returns {Object}
+   */
+  toJSON() {
+    return {
+      eventName: this.metadata.eventName,
+      version: this.metadata.eventVersion,
+      metadata: this.metadata,
+      payload: this.payload
+    };
+  }
+
+  /**
+   * Static Rehydration Factory Engine.
+   * Reconstructs historical instances out of saved infrastructure logs without side effects.
+   * 
+   * @param {Object} json - Document map pulled out of the infrastructure database.
+   * @returns {RegistrationCancelledEvent}
+   */
+  static fromJSON(json) {
+    if (!json || !json.payload) {
+      throw new DomainInvariantError("RegistrationCancelledEvent: Cannot rehydrate event from an empty payload structure.");
+    }
+
+    const metadata = json.metadata || {};
+    const extractedRegistrationId = json.aggregateId || metadata.aggregateId || json.payload.registrationId;
+
+    return new RegistrationCancelledEvent({
+      registrationId: extractedRegistrationId,
+      conferenceId: json.payload.conferenceId,
+      userId: json.payload.userId,
+      reason: json.payload.reason,
+      correlationId: json.correlationId || metadata.correlationId,
+      causationId: json.causationId || metadata.causationId,
+      occurredAt: json.occurredAt || metadata.occurredAt
+    });
+  }
+}
+
+
+===== FILE: registration\domain\events\RegistrationConfirmedEvent.js =====
+
+import { DomainEvent } from '../../../shared/DomainEvent.js';
+
+export class RegistrationConfirmedEvent extends DomainEvent {
+  constructor({
+    registrationId,
+    conferenceId,
+    userId,
+    ticketType,
+    paymentId,
+    eventId,
+    occurredAt = new Date(),
+    correlationId,
+    causationId
+  }) {
+    super({
+      eventName: 'registration.confirmed',
+      eventVersion: 1,
+      eventId,
+      occurredAt,
+      correlationId,
+      causationId
+    });
+
+    this.payload = Object.freeze({
+      registrationId,
+      conferenceId,
+      userId,
+      ticketType,
+      paymentId // â† critical for payment reconciliation
+    });
+
+    Object.freeze(this);
+  }
+}
+
+
+===== FILE: registration\domain\events\RegistrationCreatedEvent.js =====
+
+import { DomainEvent } from '../../../shared/DomainEvent.js';
+
+export class RegistrationCreatedEvent extends DomainEvent {
+  constructor({
+    registrationId,
+    conferenceId,
+    userId,
+    ticketType,
+    eventId,
+    occurredAt = new Date(),
+    correlationId,
+    causationId
+  }) {
+    super({
+      eventName: 'registration.created',
+      eventVersion: 1,
+      eventId,
+      occurredAt,
+      correlationId,
+      causationId
+    });
+
+    this.payload = Object.freeze({
+      registrationId,
+      conferenceId,
+      userId,
+      ticketType
+    });
+
+    Object.freeze(this);
+  }
+}
+
+
+===== FILE: registration\domain\events\RegistrationUpdatedEvent.js =====
+
+import { DomainEvent } from '../../../shared/DomainEvent.js';
+
+export class RegistrationUpdatedEvent extends DomainEvent {
+  constructor({
+    registrationId,
+    conferenceId,
+    userId,
+    updatedFields,
+    eventId,
+    occurredAt = new Date(),
+    correlationId,
+    causationId
+  }) {
+    super({
+      eventName: 'registration.updated',
+      eventVersion: 1,
+      eventId,
+      occurredAt,
+      correlationId,
+      causationId
+    });
+
+    this.payload = Object.freeze({
+      registrationId,
+      conferenceId,
+      userId,
+      updatedFields: Object.freeze({ ...updatedFields })
+    });
+
+    Object.freeze(this);
+  }
+}
+
+
+===== FILE: registration\index.js =====
+
+
+import { randomUUID } from "node:crypto";
+
+import { PostgresOutboxRepository } from "../../shared/infrastructure/messaging/outbox/PostgresOutboxRepository.js";
+
+import { RegistrationRepository } from "./infrastructure/repositories/RegistrationRepository.js";
+import { ConferenceRepository } from "./infrastructure/repositories/ConferenceRepository.js";
+
+import { CreateRegistrationUseCase } from "./application/user-cases/CreateRegistrationUseCase.js";
+import { GetRegistrationUseCase } from "./application/user-cases/GetRegistrationUseCase.js";
+import { GetAllRegistrationsUseCase } from "./application/user-cases/GetAllRegistrationsUseCase.js";
+import { UpdateRegistrationUseCase } from "./application/user-cases/UpdateRegistrationUseCase.js";
+import { CancelRegistrationUseCase } from "./application/user-cases/CancelRegistrationUseCase.js";
+import { CheckInRegistrationUseCase } from "./application/user-cases/CheckInRegistrationUseCase.js";
+
+import { RegistrationController } from "./api/registration.controller.js";
+import { getRegistrationRoutes } from "./api/registration.route.js";
+
+const MODULE_NAME = "ConferenceRegistrationSubModule";
+const CONFERENCE_DELETED_EVENT = "conference.deleted";
+
+function validateDependencies({
+    db,
+    unitOfWorkFactory,
+    eventBus,
+    logger,
+    authenticateMiddleware,
+}) {
+    if (typeof db !== "function") {
+        throw new TypeError(`${MODULE_NAME}: 'db' must be a Knex client.`);
+    }
+
+    if (typeof unitOfWorkFactory !== "function") {
+        throw new TypeError(
+            `${MODULE_NAME}: 'unitOfWorkFactory' must be a function.`,
+        );
+    }
+
+    if (
+        !eventBus ||
+        typeof eventBus.subscribe !== "function"
+    ) {
+        throw new TypeError(
+            `${MODULE_NAME}: 'eventBus.subscribe' is required.`,
+        );
+    }
+
+    if (
+        !logger ||
+        typeof logger.info !== "function" ||
+        typeof logger.warn !== "function" ||
+        typeof logger.error !== "function"
+    ) {
+        throw new TypeError(
+            `${MODULE_NAME}: a compatible logger is required.`,
+        );
+    }
+
+    if (typeof authenticateMiddleware !== "function") {
+        throw new TypeError(
+            `${MODULE_NAME}: 'authenticateMiddleware' must be a function.`,
+        );
+    }
+}
+
+export function createConferenceRegistrationSubModule({
+    db,
+    unitOfWorkFactory,
+    eventBus,
+    logger,
+    authenticateMiddleware,
+    uuidService,
+}) {
+    validateDependencies({
+        db,
+        unitOfWorkFactory,
+        eventBus,
+        logger,
+        authenticateMiddleware,
+    });
+
+    // Prefer the injected implementation; otherwise use Node.js crypto.
+    const resolvedUuidService = uuidService ?? {
+        generate: randomUUID,
+    };
+
+    if (typeof resolvedUuidService.generate !== "function") {
+        throw new TypeError(
+            `${MODULE_NAME}: 'uuidService.generate' must be a function.`,
+        );
+    }
+
+    // Transaction manager.
+    const uow = unitOfWorkFactory();
+
+    if (!uow || typeof uow.runInTransaction !== "function") {
+        throw new TypeError(
+            `${MODULE_NAME}: unit of work must implement runInTransaction().`,
+        );
+    }
+
+    // Repositories.
+    // RegistrationRepository expects the Knex client directly.
+    // ConferenceRepository and PostgresOutboxRepository expect { db }.
+    const registrationRepository = new RegistrationRepository(db);
+    const conferenceRepository = new ConferenceRepository({ db });
+    const outboxRepository = new PostgresOutboxRepository({ db });
+
+    // Application use cases.
+    const createRegistrationUseCase = new CreateRegistrationUseCase({
+        registrationRepository,
+        conferenceRepository,
+        outboxRepository,
+        uuidService: resolvedUuidService,
+        transactionManager: uow,
+        logger,
+    });
+
+    const getRegistrationUseCase = new GetRegistrationUseCase({
+        registrationRepository,
+        logger,
+    });
+
+    const getAllRegistrationsUseCase = new GetAllRegistrationsUseCase({
+        registrationRepository,
+        logger,
+    });
+
+    const updateRegistrationUseCase = new UpdateRegistrationUseCase({
+        registrationRepository,
+        outboxRepository,
+        transactionManager: uow,
+        logger,
+    });
+
+    const cancelRegistrationUseCase = new CancelRegistrationUseCase({
+        registrationRepository,
+        outboxRepository,
+        transactionManager: uow,
+        logger,
+    });
+
+    const checkInRegistrationUseCase = new CheckInRegistrationUseCase({
+        registrationRepository,
+        outboxRepository,
+        transactionManager: uow,
+        logger,
+    });
+
+    // HTTP presentation layer.
+    const registrationController = new RegistrationController({
+        createRegistrationUseCase,
+        getRegistrationUseCase,
+        getAllRegistrationsUseCase,
+        updateRegistrationUseCase,
+        cancelRegistrationUseCase,
+        checkInRegistrationUseCase,
+        logger,
+    });
+
+    const router = getRegistrationRoutes(
+        registrationController,
+        authenticateMiddleware,
+    );
+
+    // Event subscription lifecycle.
+    let subscriptionToken = null;
+
+    return {
+        name: "registration",
+        basePath: "/registrations",
+        router,
+
+        subscribe() {
+            if (subscriptionToken !== null) {
+                return;
+            }
+
+            const token = eventBus.subscribe(
+                CONFERENCE_DELETED_EVENT,
+                async (event) => {
+                    const {
+                        conferenceId,
+                        correlationId,
+                    } = event ?? {};
+
+                    if (!conferenceId) {
+                        logger.warn(
+                            { event },
+                            "Received conference.deleted without conferenceId.",
+                        );
+                        return;
+                    }
+
+                    try {
+                        await cancelRegistrationUseCase.execute({
+                            conferenceId,
+                            reason: "CONFERENCE_CANCELLED",
+                            correlationId,
+                        });
+                    } catch (error) {
+                        logger.error(
+                            {
+                                error,
+                                conferenceId,
+                                correlationId,
+                            },
+                            "Failed to process conference.deleted event.",
+                        );
+                    }
+                },
+            );
+
+            subscriptionToken = token ?? true;
+        },
+
+        async start() {
+            logger.info(
+                "Conference Registration sub-module initialized.",
+            );
+        },
+
+        async stop() {
+            if (subscriptionToken !== null) {
+                if (typeof eventBus.unsubscribe === "function") {
+                    eventBus.unsubscribe(
+                        CONFERENCE_DELETED_EVENT,
+                        subscriptionToken === true
+                            ? undefined
+                            : subscriptionToken,
+                    );
+                }
+
+                subscriptionToken = null;
+            }
+
+            logger.info(
+                "Conference Registration sub-module stopped.",
+            );
+        },
+    };
+}
+
+
+
+===== FILE: registration\infrastructure\repositories\ConferenceRepository.js =====
+
+/**
+ * @file ConferenceRepository.js
+ * @description Repository abstraction for Conference aggregate persistence.
+ */
+
+export class ConferenceRepository {
+  constructor({ db }) {
+    this.db = db;
+  }
+
+  async findById(id) {
+    const row = await this.db('conferences').where({ id }).first();
+    if (!row) {
+      return null;
+    }
+    return row;
+  }
+
+  async findByIdWithLock(id, transaction) {
+    const query = this.db('conferences').where({ id });
+
+    if (transaction) {
+      query.transacting(transaction).forUpdate();
+    }
+
+    const row = await query.first();
+    return row || null;
+  }
+
+  async save(conference, transaction = null) {
+    const query = this.db('conferences');
+    if (transaction) {
+      query.transacting(transaction);
+    }
+
+    // Check if the conference already exists to decide between insert or update
+    const existing = await this.db('conferences')
+      .modify((q) => {
+        if (transaction) q.transacting(transaction);
+      })
+      .where({ id: conference.id })
+      .first();
+
+    if (existing) {
+      await query.where({ id: conference.id }).update({
+        title: conference.title,
+        description: conference.description,
+        start_date: conference.startDate,
+        end_date: conference.endDate,
+        updated_at: new Date(),
+      });
+    } else {
+      await query.insert({
+        id: conference.id,
+        title: conference.title,
+        description: conference.description,
+        start_date: conference.startDate,
+        end_date: conference.endDate,
+        created_at: new Date(),
+        updated_at: new Date(),
+      });
+    }
+
+    return conference;
+  }
+}
+
+
+===== FILE: registration\infrastructure\repositories\RegistrationRepository.js =====
+
+export class RegistrationRepository {
+  constructor(db) {
+    this.db = db;
+  }
+
+  // Helper to resolve transaction or default db instance
+  _getClient(tx) {
+    return tx || this.db;
+  }
+
+  /**
+   * Saves entity mutations back to storage.
+   * Completely race-condition proof via explicit INSERT/UPDATE branching with strict OCC checks.
+   */
+  async save(registrationEntity, tx) {
+    const client = this._getClient(tx);
+    const payload = registrationEntity.toPersistence();
+    const currentVersion = payload.version;
+
+    // 1. Check if the record already exists in the database
+    const existing = await client('registrations')
+      .select('version')
+      .where({ id: payload.id })
+      .first();
+
+    if (!existing) {
+      try {
+        // 2. Path A: Fresh Insertion (Persists initial baseline version payload)
+        await client('registrations').insert(payload);
+        
+        // If your entity initializes with version 0 but the DB sets/expects 1, 
+        // use: registrationEntity.version = 1;
+        // If your entity initializes at 1 and maps 1 to the DB, no change is needed here, 
+        // but explicit assignment ensures the memory state is locked in.
+        registrationEntity.version = currentVersion; 
+      } catch (error) {
+        // Handle race conditions where two threads try to insert the same ID simultaneously
+        if (error.code === '23505' || error.message?.includes('unique constraint')) {
+          throw new Error("Concurrency Conflict: Registration already exists.");
+        }
+        throw error;
+      }
+    } else {
+      // 3. Path B: Concurrent Update with isolated version matching
+      const rowsAffected = await client('registrations')
+        .where({ id: payload.id, version: currentVersion })
+        .update({
+          status: payload.status,
+          ticket_tier: payload.ticket_tier,
+          attendee_notes: payload.attendee_notes,
+          payment_id: payload.payment_id,
+          deleted_at: payload.deleted_at,
+          updated_at: payload.updated_at,
+          version: currentVersion + 1 
+        });
+
+      // Knex returns exactly the number of affected rows for updates across all SQL dialects
+      if (rowsAffected === 0) {
+        throw new Error(
+          "Concurrency Conflict: The registration record was modified by another user process mid-flight. Please reload."
+        );
+      }
+
+      // Sync internal model version tracker safely ONLY when an update has successfully advanced it in DB
+      registrationEntity.version = currentVersion + 1;
+    }
+  }
+}
+
+
+===== FILE: registration\mappers\RegistrationMapper.js =====
+
+/**
+ * @file RegistrationMapper.js
+ * @description Maps Registration domain entities to HTTP DTOs.
+ */
+
+export function toResponseDto(registration) {
+  if (!registration) return null;
+
+  return {
+    id: registration.id,
+    attendeeId: registration.attendeeId,
+    conferenceId: registration.conferenceId,
+    ticketId: registration.ticketId,
+    ticketTier: registration.ticketTier,
+    paymentId: registration.paymentId,
+
+    status:
+      typeof registration.status === "object"
+        ? registration.status.value
+        : registration.status,
+
+    attendeeNotes: registration.attendeeNotes ?? null,
+
+    checkedInAt: registration.checkedInAt
+      ? registration.checkedInAt.toISOString()
+      : null,
+
+    cancelledAt: registration.cancelledAt
+      ? registration.cancelledAt.toISOString()
+      : null,
+
+    createdAt: registration.createdAt
+      ? registration.createdAt.toISOString()
+      : null,
+
+    updatedAt: registration.updatedAt
+      ? registration.updatedAt.toISOString()
+      : null,
+  };
+}
+
+export function toResponseDtoList(registrations = []) {
+  return registrations.map(toResponseDto);
+}

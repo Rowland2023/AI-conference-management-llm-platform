@@ -7,7 +7,7 @@ import { Router } from "express";
 //=====================================================
 
 import { SettlementPolicy }
-    from "./domain/policies/SettlementPolicy.js";
+    from "./domain/services/SettlementPolicy.js";
 
 
 //=====================================================
@@ -23,22 +23,22 @@ import { SettlementRepository }
 //=====================================================
 
 import { CreateSettlementUseCase }
-    from "./application/use_cases/CreateSettlementUseCase.js";
+    from "./application/use-cases/CreateSettlementUseCase.js";
 
 import { ScheduleSettlementUseCase }
-    from "./application/use_cases/ScheduleSettlementUseCase.js";
+    from "./application/use-cases/ScheduleSettlementUseCase.js";
 
 import { CompleteSettlementUseCase }
-    from "./application/use_cases/CompleteSettlementUseCase.js";
+    from "./application/use-cases/CompleteSettlementUseCase.js";
 
 import { CancelSettlementUseCase }
-    from "./application/use_cases/CancelSettlementUseCase.js";
+    from "./application/use-cases/CancelSettlementUseCase.js";
 
 import { GetSettlementUseCase }
-    from "./application/use_cases/GetSettlementUseCase.js";
+    from "./application/use-cases/GetSettlementUseCase.js";
 
 import { ListSettlementsUseCase }
-    from "./application/use_cases/ListSettlementsUseCase.js";
+    from "./application/use-cases/ListSettlementsUseCase.js";
 
 
 //=====================================================
