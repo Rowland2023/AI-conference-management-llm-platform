@@ -15,7 +15,7 @@ export class KafkaProducer {
 
         if (!kafka) {
             throw new Error(
-                "KafkaProducer requires Kafka instance."
+                "KafkaProducer requires a Kafka instance."
             );
         }
 
@@ -44,99 +44,142 @@ export class KafkaProducer {
 
             });
 
-        this.connected = false;
+        this.isConnected = false;
 
-        this.reconnecting = false;
+        this.isReconnecting = false;
+
+        this.isShuttingDown = false;
+
+        this.reconnectTimeout = null;
+
+        this.eventsRegistered = false;
+
+        this.handleDisconnect =
+            this.handleDisconnect.bind(this);
+
+        this.handleCrash =
+            this.handleCrash.bind(this);
 
     }
 
     async connect() {
 
-        if (this.connected) {
+        if (this.isConnected) {
             return;
         }
 
         await this.producer.connect();
 
-        this.connected = true;
+        this.isConnected = true;
 
-        this.registerEvents();
+        this.isShuttingDown = false;
 
-        this.logger.info(
+        this.isReconnecting = false;
+
+        this.registerInstrumentationEvents();
+
+        this.logger.info?.(
             "Kafka producer connected."
         );
 
     }
 
-    registerEvents() {
+    registerInstrumentationEvents() {
 
-        if (!this.instrumentationEmitter) {
+        if (
+            this.eventsRegistered ||
+            !this.instrumentationEmitter
+        ) {
             return;
         }
 
+        this.eventsRegistered = true;
+
         this.instrumentationEmitter.on(
             "producer.disconnect",
-            () => {
-
-                this.connected = false;
-
-                this.logger.warn(
-                    "Kafka producer disconnected."
-                );
-
-            }
+            this.handleDisconnect,
         );
 
         this.instrumentationEmitter.on(
             "producer.crash",
-            async ({ payload }) => {
-
-                this.logger.error(
-                    payload.error,
-                    "Kafka producer crashed."
-                );
-
-                this.connected = false;
-
-                this.reconnect();
-
-            }
+            this.handleCrash,
         );
+
+    }
+
+    handleDisconnect(event) {
+
+        this.isConnected = false;
+
+        this.logger.warn?.(
+            { event },
+            "Kafka producer disconnected."
+        );
+
+    }
+
+    async handleCrash({ payload }) {
+
+        this.isConnected = false;
+
+        this.logger.error?.(
+            { error: payload.error },
+            "Kafka producer crashed."
+        );
+
+        this.scheduleReconnect();
+
+    }
+
+    scheduleReconnect() {
+
+        if (
+            this.isReconnecting ||
+            this.isShuttingDown
+        ) {
+            return;
+        }
+
+        this.isReconnecting = true;
+
+        clearTimeout(
+            this.reconnectTimeout
+        );
+
+        this.reconnectTimeout =
+            setTimeout(
+                () => this.reconnect(),
+                5000,
+            );
 
     }
 
     async reconnect() {
 
-        if (this.reconnecting) {
+        try {
+
+            await this.connect();
+
+            this.logger.info?.(
+                "Kafka producer recovered."
+            );
+
+        } catch (err) {
+
+            this.logger.error?.(
+                { err },
+                "Kafka producer recovery failed."
+            );
+
+            this.isReconnecting = false;
+
+            this.scheduleReconnect();
+
             return;
-        }
-
-        this.reconnecting = true;
-
-        while (!this.connected) {
-
-            try {
-
-                await this.producer.connect();
-
-                this.connected = true;
-
-                this.logger.info(
-                    "Kafka producer recovered."
-                );
-
-            } catch {
-
-                await new Promise(
-                    (resolve) =>
-                        setTimeout(resolve, 5000)
-                );
-
-            }
 
         }
 
-        this.reconnecting = false;
+        this.isReconnecting = false;
 
     }
 
@@ -145,10 +188,29 @@ export class KafkaProducer {
         messages,
     ) {
 
-        if (!this.connected) {
+        if (!this.isConnected) {
 
             throw new Error(
-                "Kafka producer is not connected."
+                "KafkaProducer is not connected."
+            );
+
+        }
+
+        if (!topic) {
+
+            throw new Error(
+                "KafkaProducer.publish requires a topic."
+            );
+
+        }
+
+        if (
+            !Array.isArray(messages) ||
+            messages.length === 0
+        ) {
+
+            throw new Error(
+                "KafkaProducer.publish requires at least one message."
             );
 
         }
@@ -161,18 +223,22 @@ export class KafkaProducer {
                 CompressionTypes.GZIP,
 
             messages:
-                messages.map((m) => ({
+                messages.map((message) => ({
 
                     key:
-                        m.key?.toString(),
+                        message.key != null
+                            ? String(message.key)
+                            : undefined,
 
                     value:
-                        typeof m.value === "string"
-                            ? m.value
-                            : JSON.stringify(m.value),
+                        typeof message.value === "string"
+                            ? message.value
+                            : JSON.stringify(
+                                message.value
+                            ),
 
                     headers:
-                        m.headers,
+                        message.headers,
 
                 })),
 
@@ -182,15 +248,25 @@ export class KafkaProducer {
 
     async disconnect() {
 
-        if (!this.connected) {
+        this.isShuttingDown = true;
+
+        clearTimeout(
+            this.reconnectTimeout
+        );
+
+        this.reconnectTimeout = null;
+
+        if (!this.isConnected) {
             return;
         }
 
         await this.producer.disconnect();
 
-        this.connected = false;
+        this.isConnected = false;
 
-        this.logger.info(
+        this.isReconnecting = false;
+
+        this.logger.info?.(
             "Kafka producer disconnected."
         );
 

@@ -1,8 +1,7 @@
-
 // src/conference-management/event-schedule/index.js
 // Composition Root for Event Schedule sub-module inside Conference Management
 
-import { KnexEventRepository } from "./infrastructure/repositories/PostgresEventRepository.js";
+import { PostgresEventRepository as KnexEventRepository } from "./infrastructure/repositories/PostgresEventRepository.js";
 import { PostgresOutboxRepository } from "../../shared/infrastructure/messaging/outbox/PostgresOutboxRepository.js";
 import {
     OutboxWorker as OutboxPublisherWorker,
