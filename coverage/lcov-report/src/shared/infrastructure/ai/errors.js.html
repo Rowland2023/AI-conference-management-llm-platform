@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-    <title>Code coverage report for src/shared/infrastructure/ai/errors.js</title>
+    <title>Code coverage report for src/Shared/Infrastructure/ai/errors.js</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="../../../../prettify.css" />
     <link rel="stylesheet" href="../../../../base.css" />
@@ -19,34 +19,34 @@
 <body>
 <div class='wrapper'>
     <div class='pad1'>
-        <h1><a href="../../../../index.html">All files</a> / <a href="index.html">src/shared/infrastructure/ai</a> errors.js</h1>
+        <h1><a href="../../../../index.html">All files</a> / <a href="index.html">src/Shared/Infrastructure/ai</a> errors.js</h1>
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/7</span>
+                <span class='fraction'>7/7</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/1</span>
+                <span class='fraction'>1/1</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/5</span>
+                <span class='fraction'>5/5</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/7</span>
+                <span class='fraction'>7/7</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -83,40 +83,40 @@
 <a name='L18'></a><a href='#L18'>18</a>
 <a name='L19'></a><a href='#L19'>19</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">export class LLMError extends Error {
-<span class="fstat-no" title="function not covered" >  co</span>nstructor(code, message, { cause } = <span class="branch-0 cbranch-no" title="branch not covered" >{})</span> {
-<span class="cstat-no" title="statement not covered" >    super(message, { cause });</span>
-<span class="cstat-no" title="statement not covered" >    this.name = 'LLMError';</span>
-<span class="cstat-no" title="statement not covered" >    this.code = code;</span>
+  constructor(code, message, { cause } = {}) {
+    super(message, { cause });
+    this.name = 'LLMError';
+    this.code = code;
   }
 }
 export class LLMAuthorizationError extends LLMError {
-<span class="fstat-no" title="function not covered" >  co</span>nstructor(m) { <span class="cstat-no" title="statement not covered" >super('LLM_UNAUTHORIZED', m); </span>}
+  constructor(m) { super('LLM_UNAUTHORIZED', m); }
 }
 export class LLMFeatureDisabledError extends LLMError {
-<span class="fstat-no" title="function not covered" >  co</span>nstructor(m) { <span class="cstat-no" title="statement not covered" >super('LLM_FEATURE_DISABLED', m); </span>}
+  constructor(m) { super('LLM_FEATURE_DISABLED', m); }
 }
 export class LLMResourceAccessError extends LLMError {
-<span class="fstat-no" title="function not covered" >  co</span>nstructor(m) { <span class="cstat-no" title="statement not covered" >super('LLM_RESOURCE_FORBIDDEN', m); </span>}
+  constructor(m) { super('LLM_RESOURCE_FORBIDDEN', m); }
 }
 export class LLMUseCaseMappingError extends LLMError {
-<span class="fstat-no" title="function not covered" >  co</span>nstructor(m) { <span class="cstat-no" title="statement not covered" >super('LLM_USE_CASE_MAPPING', m); </span>}
+  constructor(m) { super('LLM_USE_CASE_MAPPING', m); }
 }</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
@@ -124,7 +124,7 @@ export class LLMUseCaseMappingError extends LLMError {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-10-20T09:58:03.016Z
+                at 2026-10-22T04:13:26.573Z
             </div>
         <script src="../../../../prettify.js"></script>
         <script>

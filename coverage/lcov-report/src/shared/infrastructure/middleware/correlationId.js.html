@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-    <title>Code coverage report for src/shared/infrastructure/middleware/correlationId.js</title>
+    <title>Code coverage report for src/Shared/Infrastructure/middleware/correlationId.js</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="../../../../prettify.css" />
     <link rel="stylesheet" href="../../../../base.css" />
@@ -19,34 +19,34 @@
 <body>
 <div class='wrapper'>
     <div class='pad1'>
-        <h1><a href="../../../../index.html">All files</a> / <a href="index.html">src/shared/infrastructure/middleware</a> correlationId.js</h1>
+        <h1><a href="../../../../index.html">All files</a> / <a href="index.html">src/Shared/Infrastructure/middleware</a> correlationId.js</h1>
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/5</span>
+                <span class='fraction'>5/5</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/3</span>
+                <span class='fraction'>3/3</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/1</span>
+                <span class='fraction'>1/1</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/5</span>
+                <span class='fraction'>5/5</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -105,20 +105,20 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">9x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">9x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">9x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">9x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">9x</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">// src/shared/infrastructure/middleware/correlationId.js
 &nbsp;
 import crypto from "node:crypto";
@@ -131,22 +131,22 @@ import crypto from "node:crypto";
  * 2. Existing X-Request-Id header
  * 3. Generate a new UUID
  */
-export function <span class="fstat-no" title="function not covered" >correlationIdMiddleware(</span>req, res, next) {
+export function correlationIdMiddleware(req, res, next) {
   const correlationId =
-<span class="cstat-no" title="statement not covered" >    req.headers["x-correlation-id"] ||</span>
+    req.headers["x-correlation-id"] ||
     req.headers["x-request-id"] ||
     crypto.randomUUID();
 &nbsp;
   // Attach to request
-<span class="cstat-no" title="statement not covered" >  req.correlationId = correlationId;</span>
+  req.correlationId = correlationId;
 &nbsp;
   // Make available to downstream middleware/controllers
-<span class="cstat-no" title="statement not covered" >  res.locals.correlationId = correlationId;</span>
+  res.locals.correlationId = correlationId;
 &nbsp;
   // Return to client
-<span class="cstat-no" title="statement not covered" >  res.setHeader("X-Correlation-Id", correlationId);</span>
+  res.setHeader("X-Correlation-Id", correlationId);
 &nbsp;
-<span class="cstat-no" title="statement not covered" >  next();</span>
+  next();
 }</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
@@ -154,7 +154,7 @@ export function <span class="fstat-no" title="function not covered" >correlation
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-10-20T09:58:03.016Z
+                at 2026-10-22T04:13:26.573Z
             </div>
         <script src="../../../../prettify.js"></script>
         <script>

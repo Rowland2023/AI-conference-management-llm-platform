@@ -1,189 +1,278 @@
+
 /**
  * @file src/index.js
  *
  * Application Process Bootstrap
  *
  * Responsibilities:
- * - Create application
- * - Start HTTP server
- * - Handle process lifecycle
+ * - Create and start the application
+ * - Start the HTTP server
+ * - Handle process signals and fatal errors
+ * - Gracefully shut down HTTP connections and application resources
  *
  * Does NOT know:
- * - Database details
- * - Kafka details
- * - Repository details
- * - Module wiring
+ * - Database implementation details
+ * - Kafka implementation details
+ * - Repository implementations
+ * - Feature-module wiring
  */
 
 import "dotenv/config";
 
 import { createApp } from "./app.js";
+import { PinoLogger } from "./cross-cutting/logging/PinoLogger.js";
 
-const PORT = Number(process.env.PORT ?? 3000);
-const SHUTDOWN_TIMEOUT = 15000;
+const PORT = Number.parseInt(process.env.PORT ?? "3000", 10);
+const SHUTDOWN_TIMEOUT_MS = 15_000;
+
+const logger = new PinoLogger();
 
 let application = null;
 let server = null;
 let shuttingDown = false;
+let shutdownPromise = null;
 
-async function shutdown(signal, error) {
-    if (shuttingDown) {
+/**
+ * Normalize non-Error rejection reasons.
+ *
+ * @param {unknown} reason
+ * @returns {Error}
+ */
+function toError(reason) {
+    if (reason instanceof Error) {
+        return reason;
+    }
+
+    return new Error(String(reason));
+}
+
+/**
+ * Close the HTTP server and stop accepting new connections.
+ *
+ * @returns {Promise<void>}
+ */
+async function closeHttpServer() {
+    if (!server?.listening) {
         return;
+    }
+
+    await new Promise((resolve, reject) => {
+        server.close((error) => {
+            if (error) {
+                reject(error);
+                return;
+            }
+
+            resolve();
+        });
+
+        // Close idle keep-alive connections where supported.
+        server.closeIdleConnections?.();
+    });
+}
+
+/**
+ * Stop application resources after HTTP traffic has drained.
+ *
+ * @returns {Promise<void>}
+ */
+async function stopApplication() {
+    if (typeof application?.stop === "function") {
+        await application.stop();
+    }
+}
+
+/**
+ * Gracefully shut down the application.
+ *
+ * Concurrent shutdown requests share the same promise.
+ *
+ * @param {string} signal
+ * @param {Error|null} [fatalError=null]
+ * @returns {Promise<void>}
+ */
+function shutdown(signal, fatalError = null) {
+    if (shutdownPromise) {
+        return shutdownPromise;
     }
 
     shuttingDown = true;
 
-    const logger = application?.logger ?? console;
+    shutdownPromise = (async () => {
+        let shutdownFailed = false;
 
-    logger.warn?.(
-        {
-            signal,
-            error,
-        },
-        "Graceful shutdown initiated"
-    );
-
-    const timeout = setTimeout(() => {
-        logger.error?.(
-            "Shutdown timeout exceeded"
+        logger.warn(
+            {
+                signal,
+                error: fatalError,
+            },
+            "Graceful shutdown initiated"
         );
 
-        process.exit(1);
+        const timeout = setTimeout(() => {
+            logger.error(
+                { signal, timeoutMs: SHUTDOWN_TIMEOUT_MS },
+                "Shutdown timeout exceeded"
+            );
 
-    }, SHUTDOWN_TIMEOUT);
+            process.exit(1);
+        }, SHUTDOWN_TIMEOUT_MS);
 
-    timeout.unref?.();
+        try {
+            // Stop accepting requests before stopping dependencies.
+            await closeHttpServer();
+        } catch (error) {
+            shutdownFailed = true;
 
-    try {
-        //
-        // Stop HTTP server
-        //
-        if (server) {
-            await new Promise(resolve => {
-                server.close(resolve);
-            });
+            logger.error(
+                { error },
+                "HTTP server shutdown failed"
+            );
         }
 
-        //
-        // Stop application lifecycle
-        //
-        await application?.stop?.();
+        try {
+            await stopApplication();
+        } catch (error) {
+            shutdownFailed = true;
 
-        clearTimeout(timeout);
+            logger.error(
+                { error },
+                "Application resource shutdown failed"
+            );
+        } finally {
+            clearTimeout(timeout);
+        }
 
-        logger.info?.(
+        const exitCode =
+            fatalError || shutdownFailed ? 1 : 0;
+
+        logger.info(
+            { signal, exitCode },
             "Application shutdown completed"
         );
 
-        process.exit(
-            error ? 1 : 0
-        );
+        process.exitCode = exitCode;
+    })();
 
-    } catch (shutdownError) {
-        clearTimeout(timeout);
-
-        logger.error?.(
-            {
-                shutdownError,
-            },
-            "Application shutdown failed"
-        );
-
-        process.exit(1);
-    }
+    return shutdownPromise;
 }
 
+/**
+ * Install process-level handlers before startup.
+ */
+function installProcessHandlers() {
+    process.once("SIGTERM", () => {
+        void shutdown("SIGTERM");
+    });
+
+    process.once("SIGINT", () => {
+        void shutdown("SIGINT");
+    });
+
+    process.once("uncaughtException", (error) => {
+        logger.error(
+            { error },
+            "Uncaught exception"
+        );
+
+        void shutdown("uncaughtException", error);
+    });
+
+    process.once("unhandledRejection", (reason) => {
+        const error = toError(reason);
+
+        logger.error(
+            { error },
+            "Unhandled promise rejection"
+        );
+
+        void shutdown("unhandledRejection", error);
+    });
+}
+
+/**
+ * Start the application process.
+ */
 async function bootstrap() {
+    installProcessHandlers();
+
+    if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535) {
+        logger.error(
+            { configuredPort: process.env.PORT },
+            "Invalid HTTP port configuration"
+        );
+
+        process.exitCode = 1;
+        return;
+    }
+
     try {
-        application = await createApp();
+        application = await createApp({ logger });
 
-        const {
-            app,
-            start,
-            logger = console,
-        } = application;
+        if (shuttingDown) {
+            await stopApplication();
+            return;
+        }
 
-        application.logger = logger;
+        const { app, start } = application ?? {};
 
-        //
-        // Start application lifecycle
-        //
-        await start?.();
+        if (typeof app?.listen !== "function") {
+            throw new TypeError(
+                "createApp() must return an object containing an Express app"
+            );
+        }
 
-        //
-        // Start HTTP server
-        //
-        server = app.listen(
-            PORT,
-            () => {
-                logger.info?.(
-                    {
-                        port: PORT,
-                    },
-                    "Conference Management API started"
-                );
-            }
-        );
+        // Initialize infrastructure and background workers first.
+        if (typeof start === "function") {
+            await start();
+        }
 
-        server.on(
-            "error",
-            error => {
-                logger.error?.(
-                    {
-                        error,
-                    },
-                    "HTTP server failure"
-                );
+        if (shuttingDown) {
+            await stopApplication();
+            return;
+        }
 
-                shutdown(
-                    "server_error",
-                    error
-                );
-            }
-        );
+        server = app.listen(PORT);
 
-        //
-        // Process lifecycle signals
-        //
-        process.once(
-            "SIGTERM",
-            () => shutdown("SIGTERM")
-        );
+        server.once("listening", () => {
+            logger.info(
+                {
+                    port: server.address()?.port ?? PORT,
+                    environment: process.env.NODE_ENV ?? "development",
+                },
+                "Conference Management API started"
+            );
+        });
 
-        process.once(
-            "SIGINT",
-            () => shutdown("SIGINT")
-        );
+        server.on("error", (error) => {
+            logger.error(
+                { error, port: PORT },
+                "HTTP server failure"
+            );
 
-        process.once(
-            "uncaughtException",
-            error =>
-                shutdown(
-                    "uncaughtException",
-                    error
-                )
-        );
+            void shutdown("server_error", error);
+        });
+    
+} catch (error) {
+    logger.error("Fatal bootstrap failure", {
+        error: error.message,
+        stack: error.stack,
+        name: error.name,
+        cause: error.cause?.message,
+    });
 
-        process.once(
-            "unhandledRejection",
-            reason =>
-                shutdown(
-                    "unhandledRejection",
-                    reason
-                )
-        );
 
-    } catch (error) {
-        console.error(
-            "Fatal bootstrap failure:",
-            error
-        );
+        try {
+            await stopApplication();
+        } catch (cleanupError) {
+            logger.error(
+                { error: cleanupError },
+                "Cleanup after bootstrap failure failed"
+            );
+        }
 
-        await application?.stop?.()
-            .catch(() => {});
-
-        process.exit(1);
+        process.exitCode = 1;
     }
 }
 
-bootstrap();
+void bootstrap();

@@ -20,16 +20,24 @@ export const validate = (schema, property = "body") => {
     }
 
     return (req, res, next) => {
-        try {
-            const input = req[property] ?? {};
-            const result = parseRequest(schema, property, input);
+    try {
+        const input = req[property] ?? {};
+        const result = parseRequest(schema, property, input);
 
+        // Keep validated values separately, including Express 5 query values.
+        req.validated ??= {};
+        req.validated[property] = result;
+
+        // Express 5 exposes req.query through a getter.
+        if (property !== "query") {
             req[property] = result;
-            next();
-        } catch (error) {
-            next(error);
         }
-    };
+
+        next();
+    } catch (error) {
+        next(error);
+    }
+};
 };
 
 function parseRequest(schema, property, input) {

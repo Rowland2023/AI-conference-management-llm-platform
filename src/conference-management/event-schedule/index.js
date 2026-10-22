@@ -3,9 +3,6 @@
 
 import { PostgresEventRepository as KnexEventRepository } from "./infrastructure/repositories/PostgresEventRepository.js";
 import { PostgresOutboxRepository } from "../../shared/infrastructure/messaging/outbox/PostgresOutboxRepository.js";
-import {
-    OutboxWorker as OutboxPublisherWorker,
-} from "../../shared/infrastructure/messaging/outbox/OutboxWorker.js";
 
 // Domain Service
 import { EventSchedulingService } from "./domain/service/Eventscheduling.service.js";
@@ -125,29 +122,18 @@ export function createConferenceEventScheduleSubModule({
         eventRepository,
         logger,
     });
-
-    // ---------------------------------------------------------
-    // Outbox worker
-    // ---------------------------------------------------------
-
-    const outboxWorker = new OutboxPublisherWorker({
-        outboxRepository,
-        eventBus,
-        logger,
-    });
-
-    // ---------------------------------------------------------
+// ---------------------------------------------------------
     // Presentation layer
     // ---------------------------------------------------------
 
     const eventController = new EventController({
-        createEventUseCase,
-        rescheduleEventUseCase,
-        cancelEventUseCase,
-        getEventUseCase,
-        listEventsUseCase,
-        logger,
-    });
+    createEventUseCase,
+    rescheduleEventUseCase,
+    cancelEventUseCase,
+    getEventByIdUseCase: getEventUseCase,
+    listEventsUseCase,
+    logger,
+});
 
     const eventRouter = createEventRouter({
         eventController,
@@ -192,20 +178,8 @@ export function createConferenceEventScheduleSubModule({
             );
         },
 
-        async start() {
-            logger.info(
-                "Starting Conference Event Schedule Outbox Worker...",
-            );
-
-            await outboxWorker.start();
-        },
-
         async stop() {
-            logger.info(
-                "Stopping Conference Event Schedule Outbox Worker...",
-            );
-
-            if (
+if (
                 subscriptionToken &&
                 typeof eventBus.unsubscribe === "function"
             ) {
@@ -216,8 +190,6 @@ export function createConferenceEventScheduleSubModule({
 
                 subscriptionToken = null;
             }
-
-            await outboxWorker.stop();
         },
     };
 }
