@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-    <title>Code coverage report for src/conference-management/ticket/infrastructure/mappers/TicketMapper.js</title>
+    <title>Code coverage report for src/conference-management/Ticket/Infrastructure/mappers/TicketMapper.js</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="../../../../../prettify.css" />
     <link rel="stylesheet" href="../../../../../base.css" />
@@ -19,34 +19,34 @@
 <body>
 <div class='wrapper'>
     <div class='pad1'>
-        <h1><a href="../../../../../index.html">All files</a> / <a href="index.html">src/conference-management/ticket/infrastructure/mappers</a> TicketMapper.js</h1>
+        <h1><a href="../../../../../index.html">All files</a> / <a href="index.html">src/conference-management/Ticket/Infrastructure/mappers</a> TicketMapper.js</h1>
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">60% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/5</span>
+                <span class='fraction'>3/5</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">41.66% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/12</span>
+                <span class='fraction'>5/12</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">66.66% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/3</span>
+                <span class='fraction'>2/3</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">75% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/4</span>
+                <span class='fraction'>3/4</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line medium'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -112,11 +112,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -131,7 +129,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -154,27 +154,27 @@ import { Ticket } from "../../domain/entities/Ticket.js";
 import { Money } from "../../domain/valueobjects/Money.js";
 &nbsp;
 export class TicketMapper {
-<span class="fstat-no" title="function not covered" >  to</span>Domain(row) {
-<span class="cstat-no" title="statement not covered" >    if (!row) <span class="cstat-no" title="statement not covered" >return null;</span></span>
+  toDomain(row) {
+    <span class="missing-if-branch" title="if path not taken" >I</span>if (!row) <span class="cstat-no" title="statement not covered" >return null;</span>
 &nbsp;
-<span class="cstat-no" title="statement not covered" >    return Ticket.rehydrate({</span>
+    return Ticket.rehydrate({
       id: row.id,
-      conferenceId: row.conference_id ?? row.conferenceId,
+      conferenceId: row.conference_id ?? <span class="branch-1 cbranch-no" title="branch not covered" >row.conferenceId,</span>
       type: row.type,
       price: new Money(
-        row.price_amount ?? row.priceAmount,
-        row.price_currency ?? row.priceCurrency
+        row.price_amount ?? <span class="branch-1 cbranch-no" title="branch not covered" >row.priceAmount,</span>
+        row.price_currency ?? <span class="branch-1 cbranch-no" title="branch not covered" >row.priceCurrency</span>
       ),
       capacity: Number(row.capacity),
       reserved: Number(row.reserved),
       sold: Number(row.sold),
       status: row.status,
-      version: Number(row.version ?? 0),
+      version: Number(row.version ?? <span class="branch-1 cbranch-no" title="branch not covered" >0)</span>,
     });
   }
 &nbsp;
-<span class="fstat-no" title="function not covered" >  to</span>Persistence(ticket) {
-<span class="cstat-no" title="statement not covered" >    return {</span>
+  toPersistence(ticket) {
+    return {
       id: ticket.id,
       conference_id: ticket.conferenceId,
       type: ticket.type,
@@ -199,7 +199,7 @@ export class TicketMapper {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-10-20T09:58:03.016Z
+                at 2026-10-22T04:13:26.573Z
             </div>
         <script src="../../../../../prettify.js"></script>
         <script>

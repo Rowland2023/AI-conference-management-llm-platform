@@ -61,9 +61,9 @@ export class EventController {
     async getEventById(req, res, next) {
         this.logger.info("HTTP request received: Get Event By ID", { eventId: req.params.id });
         try {
-            const result = await this.getEventByIdUseCase.execute({
-                eventId: req.params.id
-            });
+            const result = await this.listEventsUseCase.execute(
+    req.validated?.query ?? req.query
+);
 
             return res.status(200).json({
                 success: true,
@@ -102,7 +102,8 @@ export class EventController {
                 success: true,
                 data: result
             });
-        } catch (error) {
+                } catch (error) {
+            console.error("[EventController.listEvents] Failure:", error);
             next(error);
         }
     }

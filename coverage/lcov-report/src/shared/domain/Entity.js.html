@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-    <title>Code coverage report for src/shared/domain/Entity.js</title>
+    <title>Code coverage report for src/Shared/domain/Entity.js</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="../../../prettify.css" />
     <link rel="stylesheet" href="../../../base.css" />
@@ -19,34 +19,34 @@
 <body>
 <div class='wrapper'>
     <div class='pad1'>
-        <h1><a href="../../../index.html">All files</a> / <a href="index.html">src/shared/domain</a> Entity.js</h1>
+        <h1><a href="../../../index.html">All files</a> / <a href="index.html">src/Shared/domain</a> Entity.js</h1>
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">22.22% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/36</span>
+                <span class='fraction'>8/36</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">30% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/30</span>
+                <span class='fraction'>9/30</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">27.27% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/11</span>
+                <span class='fraction'>3/11</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">26.66% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/30</span>
+                <span class='fraction'>8/30</span>
             </div>
         
             
@@ -143,27 +143,27 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -171,8 +171,8 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -219,27 +219,27 @@
 import { DomainEvent } from './DomainEvent.js'; // add this
 &nbsp;
 export class Entity {
-  #domainEvents = <span class="cstat-no" title="statement not covered" >[];</span>
+  #domainEvents = [];
 &nbsp;
-<span class="fstat-no" title="function not covered" >  co</span>nstructor(id, version = <span class="branch-0 cbranch-no" title="branch not covered" >0)</span> {
-<span class="cstat-no" title="statement not covered" >    if (new.target === Entity) {</span>
+  constructor(id, version = 0) {
+    <span class="missing-if-branch" title="if path not taken" >I</span>if (new.target === Entity) {
 <span class="cstat-no" title="statement not covered" >      throw new Error('Entity is abstract and cannot be instantiated directly');</span>
     }
-<span class="cstat-no" title="statement not covered" >    if (!id || typeof id !== 'string' || id.trim() === '') {</span>
+    <span class="missing-if-branch" title="if path not taken" >I</span>if (!id || typeof id !== 'string' || id.trim() === '') {
 <span class="cstat-no" title="statement not covered" >      throw new DomainValidationError('Entity must have a non-empty string ID');</span>
     }
-<span class="cstat-no" title="statement not covered" >    if (!Number.isInteger(version) || version &lt; 0) {</span>
+    <span class="missing-if-branch" title="if path not taken" >I</span>if (!Number.isInteger(version) || version &lt; 0) {
 <span class="cstat-no" title="statement not covered" >      throw new DomainValidationError('Entity version must be a non-negative integer');</span>
     }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >    Object.defineProperty(this, '_id', { </span>
+    Object.defineProperty(this, '_id', { 
       value: id.trim(), 
       writable: false, 
       enumerable: true,
       configurable: false 
     });
     
-<span class="cstat-no" title="statement not covered" >    Object.defineProperty(this, '_version', { </span>
+    Object.defineProperty(this, '_version', { 
       value: version, 
       writable: true,
       enumerable: true,
@@ -247,8 +247,8 @@ export class Entity {
     });
   }
 &nbsp;
-<span class="fstat-no" title="function not covered" >  ge</span>t id() { <span class="cstat-no" title="statement not covered" >return this._id; </span>}
-<span class="fstat-no" title="function not covered" >  ge</span>t version() { <span class="cstat-no" title="statement not covered" >return this._version; </span>}
+  get id() { return this._id; }
+  get version() { return this._version; }
 &nbsp;
 <span class="fstat-no" title="function not covered" >  re</span>cordEvent(event) {
 <span class="cstat-no" title="statement not covered" >    if (!event) <span class="cstat-no" title="statement not covered" >return;</span></span>
@@ -298,7 +298,7 @@ export class Entity {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-10-20T09:58:03.016Z
+                at 2026-10-22T04:13:26.573Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>

@@ -18,6 +18,7 @@ module.exports = {
     coverageDirectory: "coverage/unit",
 
     collectCoverageFrom: [
-        "src/conference-management/**/*.js"
-    ],
+    "src/conference-management/**/*.js",
+    "src/Shared/Infrastructure/ai/**/*.js",
+],
 };

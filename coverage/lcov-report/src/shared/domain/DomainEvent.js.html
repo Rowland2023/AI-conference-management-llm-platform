@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-    <title>Code coverage report for src/shared/domain/DomainEvent.js</title>
+    <title>Code coverage report for src/Shared/domain/DomainEvent.js</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="../../../prettify.css" />
     <link rel="stylesheet" href="../../../base.css" />
@@ -19,34 +19,34 @@
 <body>
 <div class='wrapper'>
     <div class='pad1'>
-        <h1><a href="../../../index.html">All files</a> / <a href="index.html">src/shared/domain</a> DomainEvent.js</h1>
+        <h1><a href="../../../index.html">All files</a> / <a href="index.html">src/Shared/domain</a> DomainEvent.js</h1>
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">68.75% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/16</span>
+                <span class='fraction'>11/16</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">67.74% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/31</span>
+                <span class='fraction'>21/31</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/4</span>
+                <span class='fraction'>4/4</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">68.75% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/16</span>
+                <span class='fraction'>11/16</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line medium'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -151,22 +151,20 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -180,20 +178,22 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">12x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { randomUUID } from 'crypto';
 &nbsp;
@@ -208,35 +208,35 @@ export class DomainEvent {
    * @param {string|null} [params.correlationId=null] - ID to trace the casual chain across modules
    * @param {string|null} [params.causationId=null] - ID of the message/request that triggered this event
    */
-<span class="fstat-no" title="function not covered" >  co</span>nstructor({
+  constructor({
     eventName,
     aggregateId,
     eventVersion = <span class="branch-0 cbranch-no" title="branch not covered" >1,</span>
-    eventId = <span class="branch-0 cbranch-no" title="branch not covered" >randomUUID(),</span>
-    occurredAt = <span class="branch-0 cbranch-no" title="branch not covered" >new Date(),</span>
+    eventId = randomUUID(),
+    occurredAt = new Date(),
     correlationId = <span class="branch-0 cbranch-no" title="branch not covered" >null,</span>
     causationId = <span class="branch-0 cbranch-no" title="branch not covered" >null</span>
   }) {
-<span class="cstat-no" title="statement not covered" >    if (!eventName || typeof eventName !== 'string') {</span>
+    <span class="missing-if-branch" title="if path not taken" >I</span>if (!eventName || typeof eventName !== 'string') {
 <span class="cstat-no" title="statement not covered" >      throw new Error('DomainEvent requires a string eventName');</span>
     }
-<span class="cstat-no" title="statement not covered" >    if (!aggregateId || typeof aggregateId !== 'string') {</span>
+    <span class="missing-if-branch" title="if path not taken" >I</span>if (!aggregateId || typeof aggregateId !== 'string') {
 <span class="cstat-no" title="statement not covered" >      throw new Error('DomainEvent requires a string aggregateId');</span>
     }
-<span class="cstat-no" title="statement not covered" >    if (typeof eventVersion !== 'number' || eventVersion &lt; 1) {</span>
+    <span class="missing-if-branch" title="if path not taken" >I</span>if (typeof eventVersion !== 'number' || eventVersion &lt; 1) {
 <span class="cstat-no" title="statement not covered" >      throw new Error('eventVersion must be a positive integer');</span>
     }
-<span class="cstat-no" title="statement not covered" >    if (!(occurredAt instanceof Date) || isNaN(occurredAt.getTime())) {</span>
+    <span class="missing-if-branch" title="if path not taken" >I</span>if (!(occurredAt instanceof Date) || isNaN(occurredAt.getTime())) {
 <span class="cstat-no" title="statement not covered" >      throw new Error('occurredAt must be a valid Date');</span>
     }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >    this.metadata = Object.freeze({</span>
+    this.metadata = Object.freeze({
       eventId,
       eventName,
       aggregateId,
       eventVersion,
       occurredAt: occurredAt.toISOString(), 
-      correlationId: correlationId ?? null,
+      correlationId: correlationId ?? <span class="branch-1 cbranch-no" title="branch not covered" >null,</span>
       causationId: causationId ?? null
     });
   }
@@ -245,21 +245,21 @@ export class DomainEvent {
    * Safe utility method for subclasses to call at the end of their constructor
    * to guarantee deep immutability across the entire event payload graph.
    */
-<span class="fstat-no" title="function not covered" >  fr</span>eezeEvent() {
-    const deepFreeze = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(o</span>bj) =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >      Object.freeze(obj);</span>
-<span class="cstat-no" title="statement not covered" >      Object.keys(obj).forEach(<span class="fstat-no" title="function not covered" >(p</span>rop) =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >        if (</span>
+  freezeEvent() {
+    const deepFreeze = (obj) =&gt; {
+      Object.freeze(obj);
+      Object.keys(obj).forEach((prop) =&gt; {
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (
           obj[prop] !== null &amp;&amp;
-          (typeof obj[prop] === 'object' || typeof obj[prop] === 'function') &amp;&amp;
+          (typeof obj[prop] === 'object' || <span class="branch-2 cbranch-no" title="branch not covered" >typeof obj[prop] === 'function')</span> &amp;&amp;
           !Object.isFrozen(obj[prop])
         ) {
 <span class="cstat-no" title="statement not covered" >          deepFreeze(obj[prop]);</span>
         }
       });
     };
-<span class="cstat-no" title="statement not covered" >    deepFreeze(this);</span>
-<span class="cstat-no" title="statement not covered" >    return this;</span>
+    deepFreeze(this);
+    return this;
   }
 }</pre></td></tr></table></pre>
 
@@ -268,7 +268,7 @@ export class DomainEvent {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-10-20T09:58:03.016Z
+                at 2026-10-22T04:13:26.573Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>
