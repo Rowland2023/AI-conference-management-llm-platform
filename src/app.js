@@ -33,6 +33,7 @@ export async function createApp({ logger = defaultLogger } = {}) {
     const healthPayload = JSON.stringify({
         status: "ok",
         service: "conference-management",
+        timestamp: new Date().toISOString(),
     });
 
     app.get("/health", (req, res) => {
