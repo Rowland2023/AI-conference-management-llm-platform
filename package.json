@@ -12,7 +12,7 @@
     "test": "cross-env NODE_ENV=test PAYSTACK_SECRET_KEY=sk_test_dummy_key jest --runInBand",
     "test:unit": "jest --config jest.unit.config.cjs --runInBand",
     "test:integration": "jest test/integration",
-    "test:api": "jest test/api",
+    "test:api": "cross-env NODE_ENV=test PAYSTACK_SECRET_KEY=sk_test_dummy_key jest test/api --runInBand",
     "migrate": "knex migrate:latest",
     "rollback": "knex migrate:rollback",
     "status": "knex migrate:status",
@@ -45,7 +45,6 @@
     "pg": "^8.22.0",
     "pino": "^10.3.1",
     "rate-limit-redis": "^5.0.0",
-    "sequelize": "^6.37.8",
     "stripe": "^22.4.0",
     "tiktoken": "^1.0.22",
     "zod": "^4.4.3",
@@ -62,5 +61,8 @@
     "nyc": "^18.0.0",
     "supertest": "^7.2.2",
     "testcontainers": "^12.0.4"
+  },
+  "overrides": {
+    "uuid": "11.1.1"
   }
 }

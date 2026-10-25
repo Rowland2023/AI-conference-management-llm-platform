@@ -1,5 +1,5 @@
-import { DomainEvent } from "../../../../shared/domain/DomainEvent.js";
-import { DomainInvariantError } from "../../../../shared/domain/error/DomainErrors.js";
+﻿import { DomainEvent } from "../../../../Shared/domain/DomainEvent.js";
+import { DomainInvariantError } from "../../../../Shared/domain/error/DomainErrors.js";
 
 const MAX_EVENT_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const ISO_UTC_REGEX = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/;
@@ -13,7 +13,8 @@ export class EventScheduled extends DomainEvent {
         endTime,   // must be ISO-8601 UTC
         occurredAt, // required: decision time
         correlationId = null,
-        causationId = null
+        causationId = null,
+        eventInstanceId
     }) {
         if (!eventId) throw new DomainInvariantError("EventScheduled: eventId is required.");
         if (!title) throw new DomainInvariantError("EventScheduled: title is required.");
@@ -53,7 +54,8 @@ export class EventScheduled extends DomainEvent {
             aggregateId: eventId,
             occurredAt: parsedOccurred,
             correlationId,
-            causationId
+            causationId,
+            ...(eventInstanceId ? { eventId: eventInstanceId } : {})
         });
 
         this.payload = Object.freeze({
@@ -69,21 +71,37 @@ export class EventScheduled extends DomainEvent {
 
     static from(persisted) {
         if (!persisted?.payload) {
-            throw new DomainInvariantError("EventScheduled: Cannot rehydrate from empty data.");
+            throw new DomainInvariantError(
+                "EventScheduled: Cannot rehydrate from empty data."
+            );
         }
-        if (persisted.aggregateId !== persisted.payload.eventId) {
-            throw new DomainInvariantError("EventScheduled: aggregateId mismatch during rehydration.");
+
+        const metadata = persisted.metadata ?? {};
+        const payload = persisted.payload;
+        const aggregateId = metadata.aggregateId ?? persisted.aggregateId;
+
+        if (aggregateId !== payload.eventId) {
+            throw new DomainInvariantError(
+                "EventScheduled: aggregateId mismatch during rehydration."
+            );
         }
-        
+
+        if (!metadata.occurredAt) {
+            throw new DomainInvariantError(
+                "EventScheduled: occurredAt is required during rehydration."
+            );
+        }
+
         return new EventScheduled({
-            eventId: persisted.payload.eventId,
-            title: persisted.payload.title,
-            roomId: persisted.payload.roomId,
-            startTime: persisted.payload.startTime,
-            endTime: persisted.payload.endTime,
-            occurredAt: persisted.metadata.occurredAt,
-            correlationId: persisted.metadata.correlationId,
-            causationId: persisted.metadata.causationId
+            eventId: payload.eventId,
+            title: payload.title,
+            roomId: payload.roomId,
+            startTime: payload.startTime,
+            endTime: payload.endTime,
+            occurredAt: metadata.occurredAt,
+            correlationId: metadata.correlationId,
+            causationId: metadata.causationId,
+            eventInstanceId: metadata.eventId
         });
     }
 }
