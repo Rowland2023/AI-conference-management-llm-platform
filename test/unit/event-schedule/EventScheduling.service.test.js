@@ -1,6 +1,6 @@
 
 import { EventSchedulingService } from "../../../src/conference-management/event-schedule/domain/service/Eventscheduling.service.js";
-import { DomainInvariantError } from "../../../src/shared/domain/error/DomainErrors.js";
+import { DomainInvariantError } from "../../../src/Shared/domain/error/DomainErrors.js";
 
 describe("EventSchedulingService", () => {
   let eventRepository;

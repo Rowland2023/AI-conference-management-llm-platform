@@ -1,5 +1,5 @@
-﻿import { DomainEvent } from "../../../../shared/domain/DomainEvent.js";
-import { DomainInvariantError } from "../../../../shared/domain/error/DomainErrors.js";
+﻿import { DomainEvent } from "../../../../Shared/domain/DomainEvent.js";
+import { DomainInvariantError } from "../../../../Shared/domain/error/DomainErrors.js";
 
 export class EventCancelled extends DomainEvent {
   constructor({

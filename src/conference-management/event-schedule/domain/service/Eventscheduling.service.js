@@ -1,5 +1,5 @@
 
-import { DomainInvariantError } from "../../../../shared/domain/error/DomainErrors.js";
+import { DomainInvariantError } from "../../../../Shared/domain/error/DomainErrors.js";
 
 export class EventSchedulingService {
   constructor({ eventRepository }) {

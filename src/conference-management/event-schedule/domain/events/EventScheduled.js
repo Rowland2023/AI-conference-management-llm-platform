@@ -1,5 +1,5 @@
-﻿import { DomainEvent } from "../../../../shared/domain/DomainEvent.js";
-import { DomainInvariantError } from "../../../../shared/domain/error/DomainErrors.js";
+﻿import { DomainEvent } from "../../../../Shared/domain/DomainEvent.js";
+import { DomainInvariantError } from "../../../../Shared/domain/error/DomainErrors.js";
 
 const MAX_EVENT_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const ISO_UTC_REGEX = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/;
