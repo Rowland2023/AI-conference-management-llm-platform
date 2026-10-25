@@ -1,5 +1,5 @@
-// src/modules/Event Schedule/domain/entities/event.entities.js
 
+import { randomUUID } from "node:crypto";
 import { Entity } from "../../../../shared/domain/entity.js";
 import { DomainInvariantError } from "../../../../shared/domain/error/DomainErrors.js";
 import { EventScheduled } from "../events/EventScheduled.js";
@@ -8,7 +8,7 @@ import { EventRescheduled } from "../events/EventRescheduled.js";
 
 export const EVENT_STATUS = Object.freeze({
   DRAFT: "Draft",
-  SCHEDULED: "Scheduled", 
+  SCHEDULED: "Scheduled",
   IN_PROGRESS: "InProgress",
   COMPLETED: "Completed",
   CANCELLED: "Cancelled",
@@ -19,133 +19,247 @@ export class Event extends Entity {
     id,
     title,
     roomID,
-    organizerId, // who owns this
-    startTime, // ISO string, always UTC
-    endTime,   // ISO string, always UTC
+    organizerId,
+    startTime,
+    endTime,
     status = EVENT_STATUS.DRAFT,
-    version = 0, // for optimistic locking
+    version = 0,
   }) {
-    super(id);
+    super(id, version);
     this.title = title;
     this.roomID = roomID;
     this.organizerId = organizerId;
-    this.startTime = startTime; // store as ISO string
-    this.endTime = endTime;     // store as ISO string  
+    this.startTime = startTime;
+    this.endTime = endTime;
     this.status = status;
-    this.version = version;
   }
 
-  static create({ title, roomID, organizerId, startTime, endTime }, { correlationId = null } = {}) {
-    if (!title?.trim()) throw new DomainInvariantError("Event title is required.");
-    if (!roomID) throw new DomainInvariantError("Room ID is required.");
-    if (!organizerId) throw new DomainInvariantError("Organizer ID is required.");
-    
+  static create(
+    { title, roomID, organizerId, startTime, endTime },
+    { correlationId = null, id = randomUUID() } = {},
+  ) {
+    if (typeof title !== "string" || !title.trim()) {
+      throw new DomainInvariantError("Event title is required.");
+    }
+
+    if (!roomID) {
+      throw new DomainInvariantError("Room ID is required.");
+    }
+
+    if (!organizerId) {
+      throw new DomainInvariantError("Organizer ID is required.");
+    }
+
     const parsedStart = new Date(startTime);
     const parsedEnd = new Date(endTime);
-    const now = new Date();
 
-    if (Number.isNaN(parsedStart.getTime())) throw new DomainInvariantError("Invalid startTime.");
-    if (Number.isNaN(parsedEnd.getTime())) throw new DomainInvariantError("Invalid endTime.");
-    if (parsedStart >= parsedEnd) throw new DomainInvariantError("Start must be before end.");
-    if (parsedStart <= now) throw new DomainInvariantError("Cannot schedule in the past.");
+    if (Number.isNaN(parsedStart.getTime())) {
+      throw new DomainInvariantError("Invalid startTime.");
+    }
 
-    const event = new Event({ 
-      title: title.trim(), 
-      roomID, 
+    if (Number.isNaN(parsedEnd.getTime())) {
+      throw new DomainInvariantError("Invalid endTime.");
+    }
+
+    if (parsedStart >= parsedEnd) {
+      throw new DomainInvariantError("Start must be before end.");
+    }
+
+    if (parsedStart <= new Date()) {
+      throw new DomainInvariantError("Cannot schedule in the past.");
+    }
+
+    const event = new Event({
+      id,
+      title: title.trim(),
+      roomID,
       organizerId,
       startTime: parsedStart.toISOString(),
       endTime: parsedEnd.toISOString(),
       status: EVENT_STATUS.SCHEDULED,
-      version: 0
+      version: 0,
     });
 
-    event.recordEvent(new EventScheduled({
-      eventId: event.id,
-      title: event.title,
-      roomId: event.roomID,
-      organizerId: event.organizerId,
-      startTime: event.startTime,
-      endTime: event.endTime,
-      correlationId
-    }));
+    event.recordEvent(
+      new EventScheduled({
+        eventId: event.id,
+        title: event.title,
+        roomId: event.roomID,
+        startTime: event.startTime,
+        endTime: event.endTime,
+        occurredAt: new Date(),
+        correlationId,
+      }),
+    );
 
     return event;
   }
 
   static fromPersistence(dbDoc) {
     if (!dbDoc) return null;
-    
-    // Trust DB but still parse dates to validate integrity
-    const start = new Date(dbDoc.startTime);
-    const end = new Date(dbDoc.endTime);
-    if (start >= end) {
-      throw new DomainInvariantError(`Corrupt event ${dbDoc.id}: start time cannot be equal to or after end time.`);
+
+    const { id, title, status } = dbDoc;
+
+    const roomID = dbDoc.roomID ?? dbDoc.room_id;
+    const organizerId = dbDoc.organizerId ?? dbDoc.organizer_id;
+    const rawStart = dbDoc.startTime ?? dbDoc.start_time;
+    const rawEnd = dbDoc.endTime ?? dbDoc.end_time;
+    const version = dbDoc.version ?? 0;
+
+    if (typeof rawStart !== "string" && !(rawStart instanceof Date)) {
+      throw new DomainInvariantError(
+        `Corrupt event ${id}: invalid start time.`,
+      );
     }
-    
+
+    if (typeof rawEnd !== "string" && !(rawEnd instanceof Date)) {
+      throw new DomainInvariantError(
+        `Corrupt event ${id}: invalid end time.`,
+      );
+    }
+
+    const start = new Date(rawStart);
+    const end = new Date(rawEnd);
+
+    if (Number.isNaN(start.getTime())) {
+      throw new DomainInvariantError(
+        `Corrupt event ${id}: invalid start time.`,
+      );
+    }
+
+    if (Number.isNaN(end.getTime())) {
+      throw new DomainInvariantError(
+        `Corrupt event ${id}: invalid end time.`,
+      );
+    }
+
+    if (start >= end) {
+      throw new DomainInvariantError(
+        `Corrupt event ${id}: start time cannot be equal to or after end time.`,
+      );
+    }
+
+    if (!Number.isInteger(version) || version < 0) {
+      throw new DomainInvariantError(
+        `Corrupt event ${id}: invalid version.`,
+      );
+    }
+
     return new Event({
-      id: dbDoc.id,
-      title: dbDoc.title,
-      roomID: dbDoc.roomID,
-      organizerId: dbDoc.organizerId,
-      startTime: dbDoc.startTime, // keep as ISO string from DB
-      endTime: dbDoc.endTime,
-      status: dbDoc.status,
-      version: dbDoc.version
+      id,
+      title,
+      roomID,
+      organizerId,
+      startTime: start.toISOString(),
+      endTime: end.toISOString(),
+      status,
+      version,
     });
   }
 
-  cancel(reason = null, { cancelledBy, correlationId = null, causationId = null } = {}) {
+  cancel(
+    reason = null,
+    { cancelledBy, correlationId = null, causationId = null } = {},
+  ) {
     if (this.status === EVENT_STATUS.CANCELLED) {
       throw new DomainInvariantError("Event is already cancelled.");
     }
+
     if (new Date(this.startTime) <= new Date()) {
-      throw new DomainInvariantError("Cannot cancel past or in-progress events.");
+      throw new DomainInvariantError(
+        "Cannot cancel past or in-progress events.",
+      );
     }
+
     if (!cancelledBy) {
-      throw new DomainInvariantError("cancelledBy is required for audit.");
+      throw new DomainInvariantError(
+        "cancelledBy is required for audit.",
+      );
     }
 
-    this.status = EVENT_STATUS.CANCELLED;
-    this.version += 1;
-
-    this.recordEvent(new EventCancelled({
+    const cancelledEvent = new EventCancelled({
       eventId: this.id,
       cancelledBy,
       reason: reason || "Administrative cancellation",
+      occurredAt: new Date(),
       correlationId,
-      causationId
-    }));
+      causationId,
+    });
+
+    this.status = EVENT_STATUS.CANCELLED;
+    this.incrementVersion();
+    this.recordEvent(cancelledEvent);
+
+    return this;
   }
 
-  reschedule({ startTime, endTime }, { correlationId = null, causationId = null } = {}) {
+  reschedule(
+    { startTime, endTime },
+    {
+      rescheduledBy,
+      reason = "user_request",
+      correlationId = null,
+      causationId = null,
+    } = {},
+  ) {
     if (this.status === EVENT_STATUS.CANCELLED) {
-      throw new DomainInvariantError("Cannot reschedule a cancelled event.");
+      throw new DomainInvariantError(
+        "Cannot reschedule a cancelled event.",
+      );
     }
 
-    const parsedNewStart = new Date(startTime);
-    const parsedNewEnd = new Date(endTime);
-    const now = new Date();
-
-    if (Number.isNaN(parsedNewStart.getTime())) throw new DomainInvariantError("Invalid new startTime.");
-    if (Number.isNaN(parsedNewEnd.getTime())) throw new DomainInvariantError("Invalid new endTime.");
-    if (parsedNewStart >= parsedNewEnd) throw new DomainInvariantError("New startTime must be before new endTime.");
-    if (parsedNewStart <= now) throw new DomainInvariantError("Cannot reschedule an event into the past.");
+    if (!rescheduledBy) {
+      throw new DomainInvariantError(
+        "rescheduledBy is required for audit.",
+      );
+    }
 
     const previousStartTime = this.startTime;
     const previousEndTime = this.endTime;
 
-    this.startTime = parsedNewStart.toISOString();
-    this.endTime = parsedNewEnd.toISOString();
-    this.version += 1;
+    const parsedNewStart = new Date(startTime);
+    const parsedNewEnd = new Date(endTime);
 
-    this.recordEvent(new EventRescheduled({
+    if (Number.isNaN(parsedNewStart.getTime())) {
+      throw new DomainInvariantError("Invalid new startTime.");
+    }
+
+    if (Number.isNaN(parsedNewEnd.getTime())) {
+      throw new DomainInvariantError("Invalid new endTime.");
+    }
+
+    if (parsedNewStart >= parsedNewEnd) {
+      throw new DomainInvariantError(
+        "New startTime must be before new endTime.",
+      );
+    }
+
+    if (parsedNewStart <= new Date()) {
+      throw new DomainInvariantError(
+        "Cannot reschedule an event into the past.",
+      );
+    }
+
+    const newStartTime = parsedNewStart.toISOString();
+    const newEndTime = parsedNewEnd.toISOString();
+
+    const rescheduledEvent = new EventRescheduled({
       eventId: this.id,
       previousStartTime,
       previousEndTime,
-      newStartTime: this.startTime,
-      newEndTime: this.endTime,
+      newStartTime,
+      newEndTime,
+      rescheduledBy,
+      occurredAt: new Date().toISOString(),
       correlationId,
-      causationId
-    }));
+      causationId,
+    });
+
+    this.startTime = newStartTime;
+    this.endTime = newEndTime;
+    this.incrementVersion();
+    this.recordEvent(rescheduledEvent);
+
+    return this;
   }
 }
