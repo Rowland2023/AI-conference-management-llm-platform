@@ -20,5 +20,6 @@ module.exports = {
     collectCoverageFrom: [
     "src/conference-management/**/*.js",
     "src/Shared/Infrastructure/ai/**/*.js",
+    "src/Shared/Infrastructure/messaging/outbox/PostgresOutboxRepository.js",
 ],
 };
