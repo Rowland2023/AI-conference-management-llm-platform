@@ -1,5 +1,5 @@
-import { DomainEvent } from "../../../../shared/domain/DomainEvent.js";
-import { EventDeserializationError } from "../../../../shared/domain/error/DomainErrors.js";
+import { DomainEvent } from "../../../../Shared/domain/DomainEvent.js";
+import { EventDeserializationError } from "../../../../Shared/domain/error/DomainErrors.js";
 
 export class EventRescheduled extends DomainEvent {
   constructor({

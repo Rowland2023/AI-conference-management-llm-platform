@@ -1,7 +1,7 @@
 
 import { randomUUID } from "node:crypto";
-import { Entity } from "../../../../shared/domain/entity.js";
-import { DomainInvariantError } from "../../../../shared/domain/error/DomainErrors.js";
+import { Entity } from "../../../../Shared/domain/Entity.js";
+import { DomainInvariantError } from "../../../../Shared/domain/error/DomainErrors.js";
 import { EventScheduled } from "../events/EventScheduled.js";
 import { EventCancelled } from "../events/EventCancelled.js";
 import { EventRescheduled } from "../events/EventRescheduled.js";
@@ -244,16 +244,17 @@ export class Event extends Entity {
     const newEndTime = parsedNewEnd.toISOString();
 
     const rescheduledEvent = new EventRescheduled({
-      eventId: this.id,
-      previousStartTime,
-      previousEndTime,
-      newStartTime,
-      newEndTime,
-      rescheduledBy,
-      occurredAt: new Date().toISOString(),
-      correlationId,
-      causationId,
-    });
+  eventId: this.id,
+  previousStartTime,
+  previousEndTime,
+  newStartTime,
+  newEndTime,
+  rescheduledBy,
+  reason,
+  occurredAt: new Date().toISOString(),
+  correlationId,
+  causationId,
+});
 
     this.startTime = newStartTime;
     this.endTime = newEndTime;
