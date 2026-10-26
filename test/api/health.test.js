@@ -2,27 +2,28 @@ import request from "supertest";
 import { createApp } from "../../src/app.js";
 
 describe("Health Endpoint", () => {
-
+    let application;
     let app;
 
     beforeAll(async () => {
-        const application = await createApp();
+        application = await createApp();
         app = application.app;
     });
 
-    test("GET /health returns 200", async () => {
-
-        const response = await request(app)
-            .get("/health");
-
-        expect(response.status).toBe(200);
-
-        expect(response.body).toEqual(
-            expect.objectContaining({
-                status: "ok"
-            })
-        );
-
+    afterAll(async () => {
+        await application?.stop?.();
     });
 
+    test("GET /health returns 200", async () => {
+        const response = await request(app).get("/health");
+
+        expect(response.status).toBe(200);
+        expect(response.body.timestamp).toEqual(expect.any(String));
+        expect(new Date(response.body.timestamp).toISOString()).toBe(
+            response.body.timestamp,
+        );
+        expect(response.body).toEqual(
+            expect.objectContaining({ status: "ok" }),
+        );
+    });
 });
