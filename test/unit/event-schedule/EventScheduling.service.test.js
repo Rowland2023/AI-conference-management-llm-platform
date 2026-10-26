@@ -1,4 +1,5 @@
 
+
 import { EventSchedulingService } from "../../../src/conference-management/event-schedule/domain/service/Eventscheduling.service.js";
 import { DomainInvariantError } from "../../../src/Shared/domain/error/DomainErrors.js";
 
@@ -29,7 +30,7 @@ describe("EventSchedulingService", () => {
       futureStart,
       futureEnd,
       null,
-      null
+      null,
     );
   });
 
@@ -41,23 +42,24 @@ describe("EventSchedulingService", () => {
         roomId: "room-123",
         startTime: futureStart,
         endTime: futureEnd,
-      })
+      }),
     ).rejects.toThrow(DomainInvariantError);
   });
 
   test("excludes the current event when checking a reschedule", async () => {
-    await service.ensureCanReschedule(
-      { id: "event-123", roomID: "room-123" },
-      futureStart,
-      futureEnd
-    );
+    const event = {
+      id: "event-123",
+      roomID: "room-123",
+    };
+
+    await service.ensureCanReschedule(event, futureStart, futureEnd);
 
     expect(eventRepository.existsOverlappingEvent).toHaveBeenCalledWith(
       "room-123",
       futureStart,
       futureEnd,
       "event-123",
-      null
+      null,
     );
   });
 
@@ -68,8 +70,8 @@ describe("EventSchedulingService", () => {
       service.ensureCanReschedule(
         { id: "event-123", roomID: "room-123" },
         futureStart,
-        futureEnd
-      )
+        futureEnd,
+      ),
     ).rejects.toThrow(DomainInvariantError);
   });
 
@@ -79,7 +81,7 @@ describe("EventSchedulingService", () => {
         roomId: " ",
         startTime: futureStart,
         endTime: futureEnd,
-      })
+      }),
     ).rejects.toThrow(DomainInvariantError);
   });
 
@@ -89,7 +91,7 @@ describe("EventSchedulingService", () => {
         roomId: "room-123",
         startTime: futureEnd,
         endTime: futureStart,
-      })
+      }),
     ).rejects.toThrow(DomainInvariantError);
   });
 
@@ -99,7 +101,7 @@ describe("EventSchedulingService", () => {
         roomId: "room-123",
         startTime: "2020-01-01T10:00:00.000Z",
         endTime: "2020-01-01T11:00:00.000Z",
-      })
+      }),
     ).rejects.toThrow(DomainInvariantError);
   });
 });

@@ -1,4 +1,5 @@
-﻿import { DomainEvent } from "../../../../Shared/domain/DomainEvent.js";
+
+import { DomainEvent } from "../../../../Shared/domain/DomainEvent.js";
 import { DomainInvariantError } from "../../../../Shared/domain/error/DomainErrors.js";
 
 export class EventCancelled extends DomainEvent {
@@ -12,15 +13,21 @@ export class EventCancelled extends DomainEvent {
     eventInstanceId,
   }) {
     if (typeof eventId !== "string" || !eventId.trim()) {
-      throw new DomainInvariantError("EventCancelled: eventId is required.");
+      throw new DomainInvariantError(
+        "EventCancelled: eventId is required.",
+      );
     }
 
     if (typeof cancelledBy !== "string" || !cancelledBy.trim()) {
-      throw new DomainInvariantError("EventCancelled: cancelledBy is required.");
+      throw new DomainInvariantError(
+        "EventCancelled: cancelledBy is required.",
+      );
     }
 
     const parsedOccurred =
-      occurredAt instanceof Date ? new Date(occurredAt) : new Date(occurredAt);
+      occurredAt instanceof Date
+        ? new Date(occurredAt.getTime())
+        : new Date(occurredAt);
 
     if (Number.isNaN(parsedOccurred.getTime())) {
       throw new DomainInvariantError(
@@ -29,7 +36,9 @@ export class EventCancelled extends DomainEvent {
     }
 
     const normalizedReason =
-      typeof reason === "string" && reason.trim() ? reason.trim() : null;
+      typeof reason === "string" && reason.trim()
+        ? reason.trim()
+        : null;
 
     super({
       eventName: "event.cancelled",
@@ -41,11 +50,11 @@ export class EventCancelled extends DomainEvent {
       ...(eventInstanceId ? { eventId: eventInstanceId } : {}),
     });
 
-    this.payload = {
+    this.payload = Object.freeze({
       eventId: eventId.trim(),
       cancelledBy: cancelledBy.trim(),
       reason: normalizedReason,
-    };
+    });
 
     this.freezeEvent();
   }
@@ -72,21 +81,31 @@ export class EventCancelled extends DomainEvent {
 
     const metadata = json.metadata ?? {};
     const payload = json.payload;
-    const aggregateId =
-      metadata.aggregateId ?? json.aggregateId ?? payload.eventId;
-    const occurredAt = metadata.occurredAt ?? json.occurredAt;
 
     if (
       typeof payload.eventId !== "string" ||
-      !payload.eventId.trim() ||
-      aggregateId !== payload.eventId
+      !payload.eventId.trim()
+    ) {
+      throw new DomainInvariantError(
+        "EventCancelled: eventId is required during rehydration.",
+      );
+    }
+
+    const aggregateId =
+      metadata.aggregateId ?? json.aggregateId ?? payload.eventId;
+
+    if (
+      typeof aggregateId !== "string" ||
+      aggregateId.trim() !== payload.eventId.trim()
     ) {
       throw new DomainInvariantError(
         "EventCancelled: aggregateId mismatch during rehydration.",
       );
     }
 
-    if (!occurredAt) {
+    const occurredAt = metadata.occurredAt ?? json.occurredAt;
+
+    if (occurredAt == null) {
       throw new DomainInvariantError(
         "EventCancelled: occurredAt is required during rehydration.",
       );

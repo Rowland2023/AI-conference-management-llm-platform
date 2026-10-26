@@ -1,111 +1,212 @@
 
-import { Event, EVENT_STATUS } from "../../../src/conference-management/event-schedule/domain/entities/event.js";
+import {
+  Event,
+  EVENT_STATUS,
+} from "../../../src/conference-management/event-schedule/domain/entities/event.js";
 
-const future = (days, minutes = 0) =>
-  new Date(Date.now() + days * 86400000 + minutes * 60000).toISOString();
+function futureTime(daysFromNow, minutes = 0) {
+  return new Date(
+    Date.now() +
+      daysFromNow * 24 * 60 * 60 * 1000 +
+      minutes * 60 * 1000,
+  ).toISOString();
+}
 
-const createEvent = (overrides = {}) =>
-  Event.create({
+function createEvent(overrides = {}) {
+  return Event.create({
     title: "Backend Engineering Conference",
     roomID: "room-123",
     organizerId: "organizer-456",
-    startTime: future(2),
-    endTime: future(2, 60),
+    startTime: futureTime(2),
+    endTime: futureTime(2, 60),
     ...overrides,
   });
+}
 
 describe("Event aggregate", () => {
-  test("creates a scheduled event and records EventScheduled", () => {
-    const event = createEvent();
-    const [recorded] = event.pullEvents();
+  describe("create()", () => {
+    test("creates a scheduled event and records EventScheduled", () => {
+      const event = createEvent();
 
-    expect(event.id).toBeTruthy();
-    expect(event.status).toBe(EVENT_STATUS.SCHEDULED);
-    expect(event.version).toBe(0);
-    expect(recorded.metadata.eventName).toBe("event.scheduled");
-    expect(recorded.payload.eventId).toBe(event.id);
-  });
+      expect(event.id).toBeTruthy();
+      expect(event.status).toBe(EVENT_STATUS.SCHEDULED);
+      expect(event.version).toBe(0);
+      expect(event.title).toBe("Backend Engineering Conference");
 
-  test("rejects invalid start dates", () => {
-    expect(() => createEvent({ startTime: "invalid" }))
-      .toThrow("Invalid startTime");
-  });
+      const [domainEvent] = event.pullEvents();
 
-  test("reschedules and increments the version", () => {
-    const event = createEvent();
-    event.pullEvents();
-
-    event.reschedule(
-      { startTime: future(3), endTime: future(3, 90) },
-      { rescheduledBy: "organizer-456" },
-    );
-
-    const [recorded] = event.pullEvents();
-
-    expect(event.version).toBe(1);
-    expect(recorded.metadata.eventName).toBe("event.rescheduled");
-    expect(recorded.payload.rescheduledBy).toBe("organizer-456");
-  });
-
-  test("rejects rescheduling without an actor and preserves state", () => {
-    const event = createEvent();
-    const originalStart = event.startTime;
-
-    expect(() =>
-      event.reschedule({
-        startTime: future(3),
-        endTime: future(3, 60),
-      }),
-    ).toThrow("rescheduledBy is required");
-
-    expect(event.version).toBe(0);
-    expect(event.startTime).toBe(originalStart);
-  });
-
-  test("cancels and increments the version", () => {
-    const event = createEvent();
-    event.pullEvents();
-
-    event.cancel("Venue unavailable", {
-      cancelledBy: "organizer-456",
+      expect(domainEvent.metadata.eventName).toBe("event.scheduled");
+      expect(domainEvent.metadata.aggregateId).toBe(event.id);
+      expect(domainEvent.payload).toMatchObject({
+        eventId: event.id,
+        title: event.title,
+        roomId: event.roomID,
+      });
+      expect(domainEvent.metadata.occurredAt).toBeTruthy();
     });
 
-    const [recorded] = event.pullEvents();
-
-    expect(event.status).toBe(EVENT_STATUS.CANCELLED);
-    expect(event.version).toBe(1);
-    expect(recorded.metadata.eventName).toBe("event.cancelled");
-    expect(recorded.payload.cancelledBy).toBe("organizer-456");
-  });
-
-  test("rejects cancellation without an actor", () => {
-    const event = createEvent();
-
-    expect(() => event.cancel()).toThrow("cancelledBy is required");
-    expect(event.status).toBe(EVENT_STATUS.SCHEDULED);
-    expect(event.version).toBe(0);
-  });
-
-  test("rehydrates database snake_case fields", () => {
-    const event = Event.fromPersistence({
-      id: "event-123",
-      title: "Persisted conference",
-      room_id: "room-123",
-      organizer_id: "organizer-456",
-      start_time: future(2),
-      end_time: future(2, 60),
-      status: EVENT_STATUS.SCHEDULED,
-      version: 3,
+    test("rejects a missing title", () => {
+      expect(() => createEvent({ title: " " })).toThrow(
+        "Event title is required",
+      );
     });
 
-    expect(event.id).toBe("event-123");
-    expect(event.roomID).toBe("room-123");
-    expect(event.organizerId).toBe("organizer-456");
-    expect(event.version).toBe(3);
-    expect(event.pullEvents()).toHaveLength(0);
+    test("rejects an invalid date", () => {
+      expect(() => createEvent({ startTime: "not-a-date" })).toThrow(
+        "Invalid startTime",
+      );
+    });
+
+    test("rejects an end time before the start time", () => {
+      expect(() =>
+        createEvent({
+          startTime: futureTime(4),
+          endTime: futureTime(3),
+        }),
+      ).toThrow("Start must be before end");
+    });
   });
 
-  test("returns null for a missing persistence record", () => {
-    expect(Event.fromPersistence(null)).toBeNull();
+  describe("reschedule()", () => {
+    test("updates the schedule, increments version and records an event", () => {
+      const event = createEvent();
+      event.pullEvents();
+
+      const previousStartTime = event.startTime;
+      const previousEndTime = event.endTime;
+
+      event.reschedule(
+        {
+          startTime: futureTime(3),
+          endTime: futureTime(3, 90),
+        },
+        {
+          rescheduledBy: "organizer-456",
+          reason: "speaker availability",
+          correlationId: "correlation-123",
+        },
+      );
+
+      expect(event.version).toBe(1);
+      expect(event.startTime).not.toBe(previousStartTime);
+      expect(event.endTime).not.toBe(previousEndTime);
+
+      const [domainEvent] = event.pullEvents();
+
+      expect(domainEvent.metadata.eventName).toBe("event.rescheduled");
+      expect(domainEvent.payload).toMatchObject({
+        eventId: event.id,
+        previousStartTime,
+        previousEndTime,
+        rescheduledBy: "organizer-456",
+        reason: "speaker availability",
+      });
+    });
+
+    test("rejects a missing rescheduling actor without changing state", () => {
+      const event = createEvent();
+      const originalStartTime = event.startTime;
+      const originalEndTime = event.endTime;
+
+      expect(() =>
+        event.reschedule({
+          startTime: futureTime(3),
+          endTime: futureTime(3, 60),
+        }),
+      ).toThrow("rescheduledBy is required");
+
+      expect(event.version).toBe(0);
+      expect(event.startTime).toBe(originalStartTime);
+      expect(event.endTime).toBe(originalEndTime);
+    });
+  });
+
+  describe("cancel()", () => {
+    test("cancels the event, increments version and records the actor", () => {
+      const event = createEvent();
+      event.pullEvents();
+
+      event.cancel("Venue unavailable", {
+        cancelledBy: "organizer-456",
+        correlationId: "correlation-456",
+      });
+
+      expect(event.status).toBe(EVENT_STATUS.CANCELLED);
+      expect(event.version).toBe(1);
+
+      const [domainEvent] = event.pullEvents();
+
+      expect(domainEvent.metadata.eventName).toBe("event.cancelled");
+      expect(domainEvent.payload).toMatchObject({
+        eventId: event.id,
+        cancelledBy: "organizer-456",
+        reason: "Venue unavailable",
+      });
+    });
+
+    test("rejects a missing cancellation actor without changing state", () => {
+      const event = createEvent();
+
+      expect(() => event.cancel()).toThrow("cancelledBy is required");
+
+      expect(event.status).toBe(EVENT_STATUS.SCHEDULED);
+      expect(event.version).toBe(0);
+    });
+
+    test("rejects a second cancellation", () => {
+      const event = createEvent();
+
+      event.cancel("First cancellation", {
+        cancelledBy: "organizer-456",
+      });
+
+      expect(() =>
+        event.cancel("Second cancellation", {
+          cancelledBy: "organizer-456",
+        }),
+      ).toThrow("Event is already cancelled");
+
+      expect(event.version).toBe(1);
+    });
+  });
+
+  describe("fromPersistence()", () => {
+    test("rehydrates an event from database column names", () => {
+      const startTime = futureTime(2);
+      const endTime = futureTime(2, 60);
+
+      const event = Event.fromPersistence({
+        id: "event-123",
+        title: "Persisted conference",
+        room_id: "room-123",
+        organizer_id: "organizer-456",
+        start_time: startTime,
+        end_time: endTime,
+        status: EVENT_STATUS.SCHEDULED,
+        version: 3,
+      });
+
+      expect(event.id).toBe("event-123");
+      expect(event.roomID).toBe("room-123");
+      expect(event.organizerId).toBe("organizer-456");
+      expect(event.version).toBe(3);
+      expect(event.startTime).toBe(new Date(startTime).toISOString());
+      expect(event.pullEvents()).toHaveLength(0);
+    });
+
+    test("returns null for a missing database record", () => {
+      expect(Event.fromPersistence(null)).toBeNull();
+    });
+
+    test("rejects invalid persisted dates", () => {
+      expect(() =>
+        Event.fromPersistence({
+          id: "event-123",
+          start_time: "invalid",
+          end_time: futureTime(2),
+          version: 0,
+        }),
+      ).toThrow("invalid start time");
+    });
   });
 });

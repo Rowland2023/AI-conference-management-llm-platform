@@ -1,4 +1,5 @@
-﻿import { EventScheduled } from "../../../src/conference-management/event-schedule/domain/events/EventScheduled.js";
+
+import { EventScheduled } from "../../../src/conference-management/event-schedule/domain/events/EventScheduled.js";
 
 describe("EventScheduled metadata", () => {
   test("preserves event-instance ID and aggregate ID during rehydration", () => {
