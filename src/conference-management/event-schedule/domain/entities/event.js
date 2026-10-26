@@ -1,4 +1,5 @@
 
+
 import { randomUUID } from "node:crypto";
 import { Entity } from "../../../../Shared/domain/Entity.js";
 import { DomainInvariantError } from "../../../../Shared/domain/error/DomainErrors.js";
@@ -16,7 +17,7 @@ export const EVENT_STATUS = Object.freeze({
 
 export class Event extends Entity {
   constructor({
-    id,
+    id = randomUUID(),
     title,
     roomID,
     organizerId,
@@ -25,7 +26,9 @@ export class Event extends Entity {
     status = EVENT_STATUS.DRAFT,
     version = 0,
   }) {
+    // Entity owns ID and version management.
     super(id, version);
+
     this.title = title;
     this.roomID = roomID;
     this.organizerId = organizerId;
@@ -85,9 +88,10 @@ export class Event extends Entity {
         eventId: event.id,
         title: event.title,
         roomId: event.roomID,
+        organizerId: event.organizerId,
         startTime: event.startTime,
         endTime: event.endTime,
-        occurredAt: new Date(),
+        occurredAt: new Date().toISOString(),
         correlationId,
       }),
     );
@@ -96,10 +100,12 @@ export class Event extends Entity {
   }
 
   static fromPersistence(dbDoc) {
-    if (!dbDoc) return null;
+    if (!dbDoc) {
+      return null;
+    }
 
+    // Support database snake_case and domain camelCase fields.
     const { id, title, status } = dbDoc;
-
     const roomID = dbDoc.roomID ?? dbDoc.room_id;
     const organizerId = dbDoc.organizerId ?? dbDoc.organizer_id;
     const rawStart = dbDoc.startTime ?? dbDoc.start_time;
@@ -145,7 +151,7 @@ export class Event extends Entity {
       );
     }
 
-    return new Event({
+    const event = new Event({
       id,
       title,
       roomID,
@@ -155,11 +161,20 @@ export class Event extends Entity {
       status,
       version,
     });
+
+    // Rehydrating persisted state must not emit new domain events.
+    event.pullEvents();
+
+    return event;
   }
 
   cancel(
     reason = null,
-    { cancelledBy, correlationId = null, causationId = null } = {},
+    {
+      cancelledBy,
+      correlationId = null,
+      causationId = null,
+    } = {},
   ) {
     if (this.status === EVENT_STATUS.CANCELLED) {
       throw new DomainInvariantError("Event is already cancelled.");
@@ -177,11 +192,12 @@ export class Event extends Entity {
       );
     }
 
+    // Validate and construct the event before mutating state.
     const cancelledEvent = new EventCancelled({
       eventId: this.id,
       cancelledBy,
       reason: reason || "Administrative cancellation",
-      occurredAt: new Date(),
+      occurredAt: new Date().toISOString(),
       correlationId,
       causationId,
     });
@@ -243,18 +259,19 @@ export class Event extends Entity {
     const newStartTime = parsedNewStart.toISOString();
     const newEndTime = parsedNewEnd.toISOString();
 
+    // Build the event before changing aggregate state.
     const rescheduledEvent = new EventRescheduled({
-  eventId: this.id,
-  previousStartTime,
-  previousEndTime,
-  newStartTime,
-  newEndTime,
-  rescheduledBy,
-  reason,
-  occurredAt: new Date().toISOString(),
-  correlationId,
-  causationId,
-});
+      eventId: this.id,
+      previousStartTime,
+      previousEndTime,
+      newStartTime,
+      newEndTime,
+      rescheduledBy,
+      reason,
+      occurredAt: new Date().toISOString(),
+      correlationId,
+      causationId,
+    });
 
     this.startTime = newStartTime;
     this.endTime = newEndTime;

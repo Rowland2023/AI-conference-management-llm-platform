@@ -1,4 +1,8 @@
-import { Event, EVENT_STATUS } from "../../../src/conference-management/event-schedule/domain/entities/event.js";
+
+import {
+  Event,
+  EVENT_STATUS,
+} from "../../../src/conference-management/event-schedule/domain/entities/event.js";
 
 function futureTime(daysFromNow, minutes = 0) {
   return new Date(

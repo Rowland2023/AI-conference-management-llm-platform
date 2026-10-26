@@ -10,6 +10,7 @@ export class EventCancelled extends DomainEvent {
     correlationId = null,
     causationId = null,
     occurredAt = new Date(),
+    eventInstanceId,
   }) {
     if (typeof eventId !== "string" || !eventId.trim()) {
       throw new DomainInvariantError(
@@ -24,7 +25,9 @@ export class EventCancelled extends DomainEvent {
     }
 
     const parsedOccurred =
-      occurredAt instanceof Date ? new Date(occurredAt) : new Date(occurredAt);
+      occurredAt instanceof Date
+        ? new Date(occurredAt.getTime())
+        : new Date(occurredAt);
 
     if (Number.isNaN(parsedOccurred.getTime())) {
       throw new DomainInvariantError(
@@ -44,6 +47,7 @@ export class EventCancelled extends DomainEvent {
       occurredAt: parsedOccurred,
       correlationId,
       causationId,
+      ...(eventInstanceId ? { eventId: eventInstanceId } : {}),
     });
 
     this.payload = Object.freeze({
@@ -65,7 +69,11 @@ export class EventCancelled extends DomainEvent {
   }
 
   static fromJSON(json) {
-    if (!json?.payload || typeof json.payload !== "object") {
+    if (
+      !json?.payload ||
+      typeof json.payload !== "object" ||
+      Array.isArray(json.payload)
+    ) {
       throw new DomainInvariantError(
         "EventCancelled: Cannot rehydrate from an invalid payload.",
       );
@@ -74,21 +82,43 @@ export class EventCancelled extends DomainEvent {
     const metadata = json.metadata ?? {};
     const payload = json.payload;
 
+    if (
+      typeof payload.eventId !== "string" ||
+      !payload.eventId.trim()
+    ) {
+      throw new DomainInvariantError(
+        "EventCancelled: eventId is required during rehydration.",
+      );
+    }
+
+    const aggregateId =
+      metadata.aggregateId ?? json.aggregateId ?? payload.eventId;
+
+    if (
+      typeof aggregateId !== "string" ||
+      aggregateId.trim() !== payload.eventId.trim()
+    ) {
+      throw new DomainInvariantError(
+        "EventCancelled: aggregateId mismatch during rehydration.",
+      );
+    }
+
+    const occurredAt = metadata.occurredAt ?? json.occurredAt;
+
+    if (occurredAt == null) {
+      throw new DomainInvariantError(
+        "EventCancelled: occurredAt is required during rehydration.",
+      );
+    }
+
     return new EventCancelled({
-      eventId:
-        json.aggregateId ??
-        metadata.aggregateId ??
-        payload.eventId,
+      eventId: payload.eventId,
       cancelledBy: payload.cancelledBy,
       reason: payload.reason,
-      correlationId:
-        json.correlationId ?? metadata.correlationId ?? null,
-      causationId:
-        json.causationId ?? metadata.causationId ?? null,
-      occurredAt:
-        json.occurredAt ??
-        metadata.occurredAt ??
-        new Date(),
+      correlationId: metadata.correlationId ?? json.correlationId ?? null,
+      causationId: metadata.causationId ?? json.causationId ?? null,
+      occurredAt,
+      eventInstanceId: metadata.eventId ?? json.eventId,
     });
   }
 }
