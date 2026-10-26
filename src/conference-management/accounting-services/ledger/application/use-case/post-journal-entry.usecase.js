@@ -1,7 +1,7 @@
-import {
+﻿import {
   ValidationError,
   ConflictError,
-} from "../../../../../shared/application/errors/ApplicationErrors.js";
+} from "../../../../../Shared/application/errors/ApplicationErrors.js";
 
 import {
   UnbalancedEntryError,
@@ -93,17 +93,18 @@ export class PostJournalEntryUseCase {
             { session }
           );
 
-        const event =
-          new JournalEntryPostedEvent({
-            journalEntryId: journalEntry.id,
-            idempotencyKey,
-            description,
-            lines: normalizedLines,
-            metadata: {
-              ...metadata,
-              requestedBy,
-            },
-          });
+        const event = new JournalEntryPostedEvent({
+              journalEntryId: journalEntry.id,
+              idempotencyKey,
+              description,
+              lines: normalizedLines.map((line) => ({
+                    accountId: line.accountId,
+                    amount: line.amountInMinorUnits,
+                    direction: line.direction,
+                    currency: line.currency,
+              })),
+              metadata: { ...metadata, requestedBy },
+        });
 
         await this.outboxRepository.add(
           event,

@@ -42,7 +42,8 @@ export class PostgresOutboxRepository {
 
             return {
 
-                id: metadata.eventId,
+                // Read identity and event details from BaseDomainEvent getters.
+                id: event.eventId,
 
                 aggregate_type:
                     event.aggregateType ??
@@ -50,10 +51,10 @@ export class PostgresOutboxRepository {
                     event.constructor.name,
 
                 aggregate_id:
-                    metadata.aggregateId,
+                    event.aggregateId,
 
                 event_type:
-                    metadata.eventName,
+                    event.eventName,
 
                 payload:
                     JSON.stringify(event.payload),
@@ -70,7 +71,7 @@ export class PostgresOutboxRepository {
                     metadata.correlationId ?? null,
 
                 created_at:
-                    metadata.occurredAt ?? trx.fn.now(),
+                    event.occurredAt ?? trx.fn.now(),
 
             };
 
@@ -181,6 +182,5 @@ export class PostgresOutboxRepository {
             });
 
     }
-
 
 }
