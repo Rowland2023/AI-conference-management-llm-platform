@@ -1,4 +1,4 @@
-
+﻿
 
 import { randomUUID } from "node:crypto";
 import { Entity } from "../../../../Shared/domain/Entity.js";
@@ -272,6 +272,7 @@ export class Event extends Entity {
       correlationId,
       causationId,
     });
+
 
     this.startTime = newStartTime;
     this.endTime = newEndTime;
