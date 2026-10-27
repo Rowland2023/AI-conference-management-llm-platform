@@ -1,15 +1,19 @@
 module.exports = {
   testEnvironment: 'node',
-  coverageDirectory: 'coverage',
-  collectCoverageFrom: ['src/**/*.js', '!src/**/*.test.js'],
+  transform: {},
+  extensionsToTreatAsEsm: ['.js'],
+  moduleNameMapper: {
+    '^(\\.{1,2}/.*)\\.js$': '$1'
+  },
+  collectCoverageFrom: ['src/**/*.js'],
   coverageThreshold: {
     global: {
-      branches: 50,
-      functions: 60,
-      lines: 60,
-      statements: 60
+      statements: 70,
+      branches: 60,
+      functions: 70,
+      lines: 70
     }
   },
-  testMatch: ['**/test/**/*.test.js', '**/src/**/*.test.js'],
-  coverageReporters: ['text', 'lcov', 'json-summary']
+  testMatch: ['**/test/**/*.test.js'],
+  verbose: true
 };
