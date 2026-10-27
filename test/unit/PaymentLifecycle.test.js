@@ -1,0 +1,1 @@
+import { PaymentLifecycle } from '../..[STRIPPED 92 bytes].js'; test('creates',()=>{expect(new PaymentLifecycle()).toBeDefined()});

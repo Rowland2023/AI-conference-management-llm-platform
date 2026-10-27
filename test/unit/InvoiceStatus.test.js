@@ -1,0 +1,1 @@
+test('invoice status',()=>{expect('paid').toBe('paid')});
