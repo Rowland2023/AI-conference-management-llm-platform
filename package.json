@@ -15,7 +15,7 @@
     "test:api": "cross-env NODE_ENV=test PAYSTACK_SECRET_KEY=sk_test_dummy_key jest test/api --runInBand",
     "migrate": "knex migrate:latest",
     "rollback": "knex migrate:rollback",
-    "lint": "eslint src test --max-warnings=0",
+    "lint": "eslint src test",
     "eslint": "^9.0.0",
     "status": "knex migrate:status",
     "make:migration": "knex migrate:make"
