@@ -1,9 +1,9 @@
 
 import { Router } from "express";
 
-import { correlationIdMiddleware } from "../../../Shared/infrastructure/middleware/correlationId.js";
-import { idempotency } from "../../../Shared/infrastructure/middleware/idempotency.js";
-import { validate } from "../../../Shared/infrastructure/middleware/validate.js";
+import { correlationIdMiddleware } from "../../../shared/infrastructure/middleware/correlationId.js";
+import { idempotency } from "../../../shared/infrastructure/middleware/idempotency.js";
+import { validate } from "../../../shared/infrastructure/middleware/validate.js";
 
 import {
   createTicketSchema,

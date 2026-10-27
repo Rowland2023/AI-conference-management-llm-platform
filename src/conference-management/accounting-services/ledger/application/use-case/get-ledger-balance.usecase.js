@@ -7,7 +7,7 @@
 import {
   ValidationError,
   NotFoundError,
-} from "../../../../../Shared/application/errors/ApplicationErrors.js";
+} from "../../../../../shared/application/errors/ApplicationErrors.js";
 
 const toBigIntSafe = (value) => {
   if (typeof value === "bigint") {

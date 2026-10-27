@@ -1,7 +1,7 @@
 import {
     ValidationError,
     NotFoundError,
-} from "../../../../Shared/application/errors/ApplicationErrors.js";
+} from "../../../../shared/application/errors/ApplicationErrors.js";
 export class GetEventUseCase {
     constructor({
         eventRepository,

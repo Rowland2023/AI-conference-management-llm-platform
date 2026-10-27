@@ -1,6 +1,6 @@
 // From src/conference-management/event_schedule/application/use-case/
 // Go up 4 levels to src/, then into shared/application/errors/ApplicationErrors.js
-import {ValidationError, ConflictError} from "../../../../Shared/application/errors/ApplicationErrors.js";
+import {ValidationError, ConflictError} from "../../../../shared/application/errors/ApplicationErrors.js";
 
 export class CreateEventUseCase {
     constructor({

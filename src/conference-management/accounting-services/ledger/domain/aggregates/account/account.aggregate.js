@@ -5,7 +5,7 @@
 
 import { randomUUID } from "node:crypto";
 
-import { AggregateRoot } from "../../../../../../Shared/domain/AggregateRoot.js";
+import { AggregateRoot } from "../../../../../../shared/domain/AggregateRoot.js";
 
 import {
   InvalidArgumentError,

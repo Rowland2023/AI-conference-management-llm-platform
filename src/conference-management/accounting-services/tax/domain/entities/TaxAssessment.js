@@ -4,7 +4,7 @@ import { randomUUID }
     from "crypto";
 
 import { AggregateRoot }
-    from "../../../../../Shared/domain/AggregateRoot.js";
+    from "../../../../../shared/domain/AggregateRoot.js";
 
 import { TaxStatus }
     from "../value-objects/TaxStatus.js";

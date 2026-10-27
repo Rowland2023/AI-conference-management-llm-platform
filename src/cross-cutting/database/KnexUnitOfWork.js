@@ -3,7 +3,7 @@
  * @description Knex.js concrete implementation of the UnitOfWork application contract.
  */
 
-import { UnitOfWork } from "../../Shared/application/persistence/UnitOfWork.js";
+import { UnitOfWork } from "../../shared/application/persistence/UnitOfWork.js";
 
 class KnexUnitOfWork extends UnitOfWork {
   /**

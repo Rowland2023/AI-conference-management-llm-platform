@@ -1,4 +1,4 @@
-// src/Shared/infrastructure/middleware/correlationId.js
+// src/shared/infrastructure/middleware/correlationId.js
 
 import crypto from "node:crypto";
 
