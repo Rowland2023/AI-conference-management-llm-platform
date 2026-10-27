@@ -34,7 +34,8 @@ export default [
       "no-console": "off",
       "no-undef": "warn",
       "no-case-declarations": "warn",
-      "no-useless-catch": "warn"
+      "no-useless-catch": "warn",
+      "no-redeclare": "warn"
     }
   },
   {
