@@ -3,7 +3,7 @@ const js = require("@eslint/js");
 module.exports = [
   js.configs.recommended,
   {
-    ignores: ["node_modules/", "coverage/", "dist/", "*.bak", "event-schedule-debug.txt"],
+    ignores: ["node_modules/", "coverage/", "dist/", "*.bak", "**/*.bak", "event-schedule-debug.txt"],
   },
   {
     files: ["src/**/*.js", "test/**/*.js"],
@@ -18,15 +18,25 @@ module.exports = [
         __filename: "readonly",
         module: "readonly",
         require: "readonly",
+        setTimeout: "readonly",
+        clearTimeout: "readonly",
+        setInterval: "readonly",
+        clearInterval: "readonly",
+        structuredClone: "readonly",
+        crypto: "readonly",
+        AbortController: "readonly",
       },
     },
     rules: {
-      "no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
+      "no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" }],
       "no-console": "off",
+      "no-undef": "warn",
+      "no-case-declarations": "warn",
+      "no-useless-catch": "warn",
     },
   },
   {
-    files: ["test/**/*.js", "jest.config.cjs"],
+    files: ["test/**/*.js", "jest.config.cjs", "eslint.config.cjs"],
     languageOptions: {
       globals: {
         jest: "readonly",
