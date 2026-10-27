@@ -29,5 +29,5 @@ jobs:
       - name: Audit dependencies
         run: npm audit --audit-level=moderate
 
-      - name: Run unit tests
-        run: npm run test:unit
+      - name: Run unit tests with coverage
+        run: npm run test:unit -- --coverage
