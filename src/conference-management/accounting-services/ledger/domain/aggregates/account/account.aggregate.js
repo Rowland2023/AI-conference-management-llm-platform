@@ -1,22 +1,19 @@
+
 /**
  * @file ledger/domain/aggregates/account/account.aggregate.js
  */
 
 import { randomUUID } from "node:crypto";
 
-import { AggregateRoot }
-  from "../../../../../../shared/domain/AggregateRoot.js";
+import { AggregateRoot } from "../../../../../../shared/domain/AggregateRoot.js";
 
 import {
   InvalidArgumentError,
   InsufficientFundsError,
 } from "../../error/index.js";
 
-import AccountStatus
-  from "./account-status.vo.js";
-
-import HoldEntity
-  from "./hold.entity.js";
+import AccountStatus from "./account-status.vo.js";
+import HoldEntity from "./hold.entity.js";
 
 import {
   AccountHeldEvent,
@@ -24,7 +21,6 @@ import {
 } from "../../events/index.js";
 
 export default class AccountAggregate extends AggregateRoot {
-
   constructor({
     id,
     tenantId,
@@ -37,28 +33,18 @@ export default class AccountAggregate extends AggregateRoot {
     holds = [],
     createdAt = new Date(),
   }) {
-
-    super();
-
-    if (!id) {
-      throw new InvalidArgumentError(
-        "Account id is required."
-      );
+    if (!id || typeof id !== "string" || id.trim() === "") {
+      throw new InvalidArgumentError("Account id is required.");
     }
 
-    this._id = id;
+    // Entity owns the immutable ID; do not assign to this._id afterward.
+    super(id);
 
     this._tenantId = tenantId;
-
     this._accountNumber = accountNumber;
-
     this._name = name ?? "";
-
-    this._currency =
-      currency?.toUpperCase();
-
-    this._type =
-      type.toUpperCase();
+    this._currency = currency?.toUpperCase();
+    this._type = type.toUpperCase();
 
     this._status =
       status instanceof AccountStatus
@@ -66,29 +52,19 @@ export default class AccountAggregate extends AggregateRoot {
         : new AccountStatus(status);
 
     this._postedBalance =
-      AccountAggregate.parseMinorUnitsStrict(
-        postedBalance
-      );
+      AccountAggregate.parseMinorUnitsStrict(postedBalance);
 
-    this._holds =
-      new Map();
-
+    this._holds = new Map();
     this._pendingBalance = 0n;
-
-    this._createdAt =
-      new Date(createdAt);
+    this._createdAt = new Date(createdAt);
 
     for (const hold of holds) {
-
       const entity =
         hold instanceof HoldEntity
           ? hold
           : new HoldEntity(hold);
 
-      this._holds.set(
-        entity.idempotencyKey,
-        entity
-      );
+      this._holds.set(entity.idempotencyKey, entity);
 
       if (entity.isActive()) {
         this._pendingBalance += entity.amount;
@@ -98,13 +74,7 @@ export default class AccountAggregate extends AggregateRoot {
     this.assertInvariant();
   }
 
-  //---------------------------------------------------------
   // Getters
-  //---------------------------------------------------------
-
-  get id() {
-    return this._id;
-  }
 
   get status() {
     return this._status;
@@ -119,21 +89,14 @@ export default class AccountAggregate extends AggregateRoot {
   }
 
   get availableBalance() {
-    return (
-      this._postedBalance -
-      this._pendingBalance
-    );
+    return this._postedBalance - this._pendingBalance;
   }
 
   get holds() {
-    return [
-      ...this._holds.values(),
-    ];
+    return [...this._holds.values()];
   }
 
-  //---------------------------------------------------------
-  // Domain Behaviour
-  //---------------------------------------------------------
+  // Domain behaviour
 
   createHold({
     id = randomUUID(),
@@ -142,83 +105,45 @@ export default class AccountAggregate extends AggregateRoot {
     description,
     expiresAt,
   }) {
-
     this._status.assertCanPlaceHold();
 
-    if (
-      this._holds.has(
-        idempotencyKey
-      )
-    ) {
+    if (this._holds.has(idempotencyKey)) {
       return {
-        hold:
-          this._holds.get(
-            idempotencyKey
-          ),
+        hold: this._holds.get(idempotencyKey),
         isDuplicate: true,
       };
     }
 
     const holdAmount =
-      AccountAggregate
-        .parseMinorUnitsStrict(
-          amount
-        );
+      AccountAggregate.parseMinorUnitsStrict(amount);
 
-    if (
-      this.availableBalance <
-      holdAmount
-    ) {
+    if (this.availableBalance < holdAmount) {
       throw new InsufficientFundsError(
-        `Available balance ${this.availableBalance} is less than requested ${holdAmount}.`
+        `Available balance ${this.availableBalance} is less than requested ${holdAmount}.`,
       );
     }
 
-    const hold =
-      new HoldEntity({
-
-        id,
-
-        accountId:
-          this._id,
-
-        idempotencyKey,
-
-        amount:
-          holdAmount,
-
-        currency:
-          this._currency,
-
-        description,
-
-        expiresAt,
-
-      });
-
-    this._holds.set(
+    const hold = new HoldEntity({
+      id,
+      accountId: this.id,
       idempotencyKey,
-      hold
-    );
+      amount: holdAmount,
+      currency: this._currency,
+      description,
+      expiresAt,
+    });
 
-    this._pendingBalance +=
-      holdAmount;
+    this._holds.set(idempotencyKey, hold);
+    this._pendingBalance += holdAmount;
 
     this.assertInvariant();
 
     this.addDomainEvent(
       new AccountHeldEvent({
-
-        accountId:
-          this._id,
-
-        holdId:
-          hold.id,
-
-        amount:
-          hold.amount,
-
-      })
+        accountId: this.id,
+        holdId: hold.id,
+        amount: hold.amount,
+      }),
     );
 
     return {
@@ -227,163 +152,86 @@ export default class AccountAggregate extends AggregateRoot {
     };
   }
 
-  releaseHold(
-    idempotencyKey
-  ) {
-
-    if (
-      this._status.equals(
-        AccountStatus.CLOSED
-      )
-    ) {
+  releaseHold(idempotencyKey) {
+    if (this._status.equals(AccountStatus.CLOSED)) {
       throw new InvalidArgumentError(
-        "Cannot release holds from a closed account."
+        "Cannot release holds from a closed account.",
       );
     }
 
-    const hold =
-      this._holds.get(
-        idempotencyKey
-      );
+    const hold = this._holds.get(idempotencyKey);
 
     if (!hold) {
       throw new InvalidArgumentError(
-        `Hold '${idempotencyKey}' not found.`
+        `Hold '${idempotencyKey}' not found.`,
       );
     }
 
-    if (
-      hold.isActive()
-    ) {
-      this._pendingBalance -=
-        hold.amount;
+    if (hold.isActive()) {
+      this._pendingBalance -= hold.amount;
     }
 
     hold.release();
-
     this.assertInvariant();
 
     this.addDomainEvent(
       new AccountReleasedEvent({
-
-        accountId:
-          this._id,
-
-        holdId:
-          hold.id,
-
-      })
+        accountId: this.id,
+        holdId: hold.id,
+      }),
     );
   }
 
-  //---------------------------------------------------------
   // Invariants
-  //---------------------------------------------------------
 
   assertInvariant() {
-
-    if (
-      this._pendingBalance < 0n
-    ) {
-      throw new Error(
-        "Pending balance cannot be negative."
-      );
+    if (this._pendingBalance < 0n) {
+      throw new Error("Pending balance cannot be negative.");
     }
 
-    if (
-      this._postedBalance < 0n
-    ) {
-      throw new Error(
-        "Posted balance cannot be negative."
-      );
+    if (this._postedBalance < 0n) {
+      throw new Error("Posted balance cannot be negative.");
     }
   }
 
-  //---------------------------------------------------------
   // Serialization
-  //---------------------------------------------------------
 
   toJSON() {
-
     return {
-
-      id:
-        this._id,
-
-      tenantId:
-        this._tenantId,
-
-      accountNumber:
-        this._accountNumber,
-
-      name:
-        this._name,
-
-      currency:
-        this._currency,
-
-      type:
-        this._type,
-
-      status:
-        this._status.value,
-
-      postedBalance:
-        this._postedBalance,
-
-      pendingBalance:
-        this._pendingBalance,
-
-      availableBalance:
-        this.availableBalance,
-
-      holds:
-        this.holds.map(
-          h => h.toJSON()
-        ),
-
-      createdAt:
-        this._createdAt,
-
+      id: this.id,
+      tenantId: this._tenantId,
+      accountNumber: this._accountNumber,
+      name: this._name,
+      currency: this._currency,
+      type: this._type,
+      status: this._status.value,
+      postedBalance: this._postedBalance,
+      pendingBalance: this._pendingBalance,
+      availableBalance: this.availableBalance,
+      holds: this.holds.map((hold) => hold.toJSON()),
+      createdAt: this._createdAt,
     };
   }
 
-  //---------------------------------------------------------
   // Utilities
-  //---------------------------------------------------------
 
-  static parseMinorUnitsStrict(
-    value
-  ) {
-
-    if (
-      typeof value ===
-      "bigint"
-    ) {
+  static parseMinorUnitsStrict(value) {
+    if (typeof value === "bigint") {
       return value;
     }
 
-    if (
-      value === null ||
-      value === undefined
-    ) {
+    if (value === null || value === undefined) {
       return 0n;
     }
 
-    const normalized =
-      String(value).trim();
+    const normalized = String(value).trim();
 
-    if (
-      normalized.includes(".")
-    ) {
+    if (normalized.includes(".")) {
       throw new InvalidArgumentError(
-        "Amount must be expressed in integer minor units."
+        "Amount must be expressed in integer minor units.",
       );
     }
 
-    return BigInt(
-      normalized
-    );
+    return BigInt(normalized);
   }
-
 }
