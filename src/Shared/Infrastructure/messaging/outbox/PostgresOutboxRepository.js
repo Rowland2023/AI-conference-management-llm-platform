@@ -1,6 +1,6 @@
 ﻿
 /**
- * @file src/shared/infrastructure/messaging/outbox/PostgresOutboxRepository.js
+ * @file src/Shared/infrastructure/messaging/outbox/PostgresOutboxRepository.js
  * @description Transactional Outbox Repository (Knex Implementation)
  */
 
