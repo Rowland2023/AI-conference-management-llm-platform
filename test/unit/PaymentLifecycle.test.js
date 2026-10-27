@@ -1,4 +1,4 @@
-import { PaymentLifecycle } from '../..[STRIPPED 92 bytes].js';
+import { PaymentLifecycle } from '../../src/conference-management/accounting-services/payment/domain/value-objects/PaymentLifecycle.js';
 describe('PaymentLifecycle', () => {
   test('creates', () => {
     expect(new PaymentLifecycle()).toBeDefined();
