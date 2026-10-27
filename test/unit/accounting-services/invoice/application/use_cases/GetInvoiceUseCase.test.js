@@ -2,7 +2,7 @@ import {
     GetInvoiceUseCase,
     InvoiceNotFoundError,
 } from "../../../../../../src/conference-management/accounting-services/invoice/application/use_case/getInvoiceUseCase.js";
-
+import { jest } from "@jest/globals";
 describe(
     "GetInvoiceUseCase",
     () => {

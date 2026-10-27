@@ -1,5 +1,6 @@
 ﻿import { z } from "zod";
 import { ToolRegistry } from "../../../src/Shared/Infrastructure/ai/ToolRegistry.js";
+import { jest } from "@jest/globals";
 
 describe("ToolRegistry", () => {
     let featureFlags;

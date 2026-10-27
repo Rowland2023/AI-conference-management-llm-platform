@@ -1,4 +1,5 @@
 ﻿import { CreateHoldUseCase } from "../../../../src/conference-management/accounting-services/ledger/application/use-case/create-hold.usecase.js";
+import { jest } from "@jest/globals";
 
 describe("CreateHoldUseCase", () => {
     let holdRepository;

@@ -1,6 +1,6 @@
 
 import { CreateAccountUseCase } from "../../../../src/conference-management/accounting-services/ledger/application/use-case/create-account.usecase.js";
-
+import { jest } from "@jest/globals";
 describe("CreateAccountUseCase", () => {
   let accountRepository;
   let outboxRepository;

@@ -4,7 +4,7 @@
 import { BaseDomainEvent }
     from "../../../../../../src/conference-management/accounting-services/ledger/domain/events/base-domain.event.js";
 
-
+import { jest } from "@jest/globals";
 describe("PostgresOutboxRepository", () => {
     let db;
     let trx;

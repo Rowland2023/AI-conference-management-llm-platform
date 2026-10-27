@@ -3,7 +3,7 @@ import {
     ListInvoicesUseCase,
 } from "../../../../../../src/conference-management/accounting-services/invoice/application/use_case/listInvoicesUseCase.js";
 
-
+import { jest } from "@jest/globals";
 describe(
     "ListInvoicesUseCase",
     () => {

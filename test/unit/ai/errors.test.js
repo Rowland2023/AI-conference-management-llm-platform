@@ -1,10 +1,11 @@
-﻿import {
+import {
     LLMError,
     LLMAuthorizationError,
     LLMFeatureDisabledError,
     LLMResourceAccessError,
     LLMUseCaseMappingError,
 } from '../../../src/Shared/Infrastructure/ai/errors.js';
+
 
 describe('LLM errors', () => {
     test('LLMError stores its code, message, and name', () => {

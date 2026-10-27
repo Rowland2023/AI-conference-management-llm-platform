@@ -1,4 +1,5 @@
 ﻿import { PostJournalEntryUseCase } from "../../../../src/conference-management/accounting-services/ledger/application/use-case/post-journal-entry.usecase.js";
+import { jest } from "@jest/globals";
 
 describe("PostJournalEntryUseCase", () => {
     let journalEntryRepository;

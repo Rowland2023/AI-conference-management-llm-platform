@@ -4,6 +4,7 @@ import {
     LLMError,
     LLMUseCaseMappingError,
 } from "../../../src/Shared/Infrastructure/ai/errors.js";
+import { jest } from "@jest/globals";
 
 describe("AssistantService", () => {
     let service;

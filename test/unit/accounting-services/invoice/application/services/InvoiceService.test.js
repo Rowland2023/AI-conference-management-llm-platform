@@ -1,6 +1,6 @@
 import { InvoiceService }
     from "../../../../../../src/conference-management/accounting-services/invoice/application/services/InvoiceService.js";
-
+import { jest } from "@jest/globals";
 describe(
     "InvoiceService",
     () => {

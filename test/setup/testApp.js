@@ -1,5 +1,4 @@
 import { createApp } from "../../src/app.js";
-
 let application;
 
 export async function getApplication() {

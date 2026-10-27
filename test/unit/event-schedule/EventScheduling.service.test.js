@@ -2,7 +2,7 @@
 
 import { EventSchedulingService } from "../../../src/conference-management/event-schedule/domain/service/Eventscheduling.service.js";
 import { DomainInvariantError } from "../../../src/Shared/domain/error/DomainErrors.js";
-
+import { jest } from "@jest/globals";
 describe("EventSchedulingService", () => {
   let eventRepository;
   let service;
