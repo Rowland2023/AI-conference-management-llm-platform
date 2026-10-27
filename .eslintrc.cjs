@@ -1,0 +1,19 @@
+module.exports = {
+  root: true,
+  env: {
+    node: true,
+    es2022: true,
+    jest: true,
+  },
+  parserOptions: {
+    ecmaVersion: 2022,
+    sourceType: "module",
+  },
+  extends: ["eslint:recommended"],
+  rules: {
+    "no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
+    "no-console": "off",
+    "prefer-const": "warn",
+  },
+  ignorePatterns: ["node_modules/", "coverage/", "dist/", "*.bak"],
+};
