@@ -1,4 +1,4 @@
-// src/shared/utils/retry.js
+// src/Shared/utils/retry.js
 
 export async function withRetry(
   operation,

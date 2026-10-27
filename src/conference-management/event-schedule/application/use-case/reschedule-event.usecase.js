@@ -1,5 +1,5 @@
 // src/modules/event-schedule/application/use-cases/RescheduleEventUseCase.js
-import { ValidationError, NotFoundError, ConflictError } from "../../../../shared/application/errors/ApplicationErrors.js";
+import { ValidationError, NotFoundError, ConflictError } from "../../../../Shared/application/errors/ApplicationErrors.js";
 
 export class RescheduleEventUseCase {
   constructor({

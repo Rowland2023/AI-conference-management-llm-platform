@@ -1,4 +1,4 @@
-// src/shared/domain/events/base-domain.event.js
+// src/Shared/domain/events/base-domain.event.js
 
 import { randomUUID } from "node:crypto";
 import { InvalidArgumentError } from "../error/index.js";

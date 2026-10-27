@@ -3,7 +3,7 @@
 import { randomUUID } from "crypto";
 
 import { AggregateRoot }
-    from "../../../../../shared/domain/AggregateRoot.js";
+    from "../../../../../Shared/domain/AggregateRoot.js";
 
 import { SettlementStatus }
     from "../value-objects/settlement_status.js";

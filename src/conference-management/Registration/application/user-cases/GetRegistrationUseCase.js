@@ -2,7 +2,7 @@
 import {
   NotFoundError,
   UnauthorizedError,
-} from "../../../../shared/domain/error/DomainErrors.js";
+} from "../../../../Shared/domain/error/DomainErrors.js";
 
 export class GetRegistrationUseCase {
   constructor({ registrationRepository, conferenceRepository }) {

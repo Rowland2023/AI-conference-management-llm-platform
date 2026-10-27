@@ -1,4 +1,4 @@
-// src/shared/infrastructure/middleware/idempotency.js
+// src/Shared/infrastructure/middleware/idempotency.js
 
 export function idempotency(options = {}) {
   const {

@@ -1,7 +1,7 @@
 // tax/domain/events/TaxRecorded.js
 
 import { DomainEvent }
-    from "../../../../../shared/domain/DomainEvent.js";
+    from "../../../../../Shared/domain/DomainEvent.js";
 
 export class TaxRecorded extends DomainEvent {
 

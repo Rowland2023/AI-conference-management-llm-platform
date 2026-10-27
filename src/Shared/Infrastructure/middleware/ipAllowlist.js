@@ -1,4 +1,4 @@
-// src/shared/infrastructure/middleware/ipAllowlist.js
+// src/Shared/infrastructure/middleware/ipAllowlist.js
 
 import ipRangeCheck from "ip-range-check";
 

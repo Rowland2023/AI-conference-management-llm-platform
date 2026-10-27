@@ -1,4 +1,4 @@
-// src/shared/domain/AggregateRoot.js
+// src/Shared/domain/AggregateRoot.js
 
 import { Entity } from "./Entity.js";
 

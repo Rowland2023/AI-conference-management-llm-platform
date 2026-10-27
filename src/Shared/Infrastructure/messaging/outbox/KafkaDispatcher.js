@@ -1,4 +1,4 @@
-// src/shared/infrastructure/outbox/KafkaDispatcher.js
+// src/Shared/infrastructure/outbox/KafkaDispatcher.js
 
 import { OutboxDispatcher } from "./OutboxDispatcher.js";
 

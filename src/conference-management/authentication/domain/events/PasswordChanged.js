@@ -1,7 +1,7 @@
 // src/authentication/domain/events/PasswordChanged.js
 
 import { DomainEvent }
-    from "../../../../shared/domain/DomainEvent.js";
+    from "../../../../Shared/domain/DomainEvent.js";
 
 export class PasswordChanged
     extends DomainEvent {
