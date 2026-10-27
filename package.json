@@ -10,7 +10,7 @@
     "start": "nodemon --exec babel-node ./src/index.js",
     "eval": "node --env-file=.env eval/run-eval.js",
     "test": "cross-env NODE_ENV=test PAYSTACK_SECRET_KEY=sk_test_dummy_key jest --runInBand",
-    "test:unit": "jest --config jest.unit.config.cjs --runInBand",
+    "test:unit": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --config jest.unit.config.cjs --runInBand",
     "test:integration": "jest test/integration",
     "test:api": "cross-env NODE_ENV=test PAYSTACK_SECRET_KEY=sk_test_dummy_key jest test/api --runInBand",
     "migrate": "knex migrate:latest",
