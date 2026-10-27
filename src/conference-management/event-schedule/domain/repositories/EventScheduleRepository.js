@@ -1,5 +1,5 @@
 import { ValidationError }
-from "../../../../shared/application/errors/ApplicationErrors.js";
+from "../../../../Shared/application/errors/ApplicationErrors.js";
 
 /**
  * Event Schedule Repository Contract.

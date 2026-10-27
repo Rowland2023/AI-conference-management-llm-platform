@@ -3,7 +3,7 @@ import {
   NotFoundError,
   UnauthorizedError,
   BusinessRuleValidationError,
-} from "../../../../shared/domain/error/DomainErrors.js";
+} from "../../../../Shared/domain/error/DomainErrors.js";
 
 export class CheckInRegistrationUseCase {
   constructor({

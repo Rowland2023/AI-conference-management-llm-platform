@@ -1,5 +1,5 @@
 import { QueryUseCase }
-    from "../../shared/application/use-case/QueryUseCase.js";
+    from "../../Shared/application/use-case/QueryUseCase.js";
 
 import { TaxResponseDTO }
     from "../dto/TaxResponseDTO.js";

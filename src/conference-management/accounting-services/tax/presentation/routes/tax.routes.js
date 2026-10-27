@@ -4,7 +4,7 @@ import { Router }
     from "express";
 
 import { validate }
-    from "../../../../../shared/infrastructure/middleware/validate.js";
+    from "../../../../../Shared/infrastructure/middleware/validate.js";
 
 import { calculateTaxSchema }
     from "../validators/CalculateTaxValidator.js";
