@@ -67,15 +67,9 @@ export default class AccountController {
         try {
 
             const query = {
-
-                id:
-                    req.params.id,
-
-                tenantId:
-                    req.actor?.tenantId,
-
+                accountId: req.params.id,
+                tenantId: req.actor?.tenantId,
             };
-
 
             const result =
                 await this.ledgerService.getAccountBalance(

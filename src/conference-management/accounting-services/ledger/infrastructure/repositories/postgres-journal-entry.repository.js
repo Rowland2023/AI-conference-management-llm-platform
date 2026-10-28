@@ -1,4 +1,3 @@
-
 /**
  * @file postgres-journal-entry.repository.js
  *
@@ -9,6 +8,7 @@
  * - Enforce tenant isolation on all reads and updates.
  * - Support tenant-scoped ID and idempotency lookups.
  * - Support row-level locking inside transactions.
+ * - Calculate account balances from posted ledger entries.
  * - Update status and merge metadata safely.
  */
 
@@ -16,8 +16,9 @@ import db from "../../../../../cross-cutting/database/knex.js";
 import JournalEntryMapper from "../mappers/journal-entry.mapper.js";
 
 export class PostgresJournalEntryRepository {
-    constructor({ knex = db } = {}) {
-        this.knex = knex;
+    constructor({ uow, knex } = {}) {
+        this.uow = uow;
+        this.knex = knex ?? uow?.knex ?? db;
     }
 
     /**
@@ -36,10 +37,7 @@ export class PostgresJournalEntryRepository {
             throw new Error("Journal entry mapping did not produce an entry row.");
         }
 
-        const {
-            entryRow,
-            lineRows = [],
-        } = mapped;
+        const { entryRow, lineRows = [] } = mapped;
 
         if (!Array.isArray(lineRows)) {
             throw new TypeError("Journal entry line rows must be an array.");
@@ -52,7 +50,9 @@ export class PostgresJournalEntryRepository {
             entryRow.tenant_id != null &&
             String(entryRow.tenant_id) !== String(tenantId)
         ) {
-            throw new Error("Journal entry tenant does not match the requested tenant.");
+            throw new Error(
+                "Journal entry tenant does not match the requested tenant.",
+            );
         }
 
         const entry = {
@@ -65,7 +65,9 @@ export class PostgresJournalEntryRepository {
                 line.tenant_id != null &&
                 String(line.tenant_id) !== String(tenantId)
             ) {
-                throw new Error("Journal line tenant does not match the journal entry tenant.");
+                throw new Error(
+                    "Journal line tenant does not match the journal entry tenant.",
+                );
             }
 
             return {
@@ -95,6 +97,108 @@ export class PostgresJournalEntryRepository {
     }
 
     /**
+     * Calculate the natural posted balance of an account.
+     *
+     * Uses integer minor units and the migrated ledger schema.
+     * Does not calculate pending holds.
+     *
+     * @returns {Promise<{ postedBalance: string }>}
+     */
+    async calculateAccountBalance({
+        tenantId,
+        accountId,
+        currency,
+        asOfDate,
+        accountType,
+    }) {
+        this.#requireTenantId(tenantId);
+        this.#requireId(accountId, "Account ID");
+
+        if (
+            typeof currency !== "string" ||
+            currency.trim() === ""
+        ) {
+            throw new TypeError("currency is required.");
+        }
+
+        const effectiveDate = new Date(asOfDate);
+
+        if (
+            asOfDate == null ||
+            Number.isNaN(effectiveDate.getTime())
+        ) {
+            throw new TypeError("asOfDate must be a valid date.");
+        }
+
+        const normalizedType = String(accountType ?? "")
+            .trim()
+            .toUpperCase();
+
+        const debitNormal = ["ASSET", "EXPENSE"].includes(
+            normalizedType,
+        );
+
+        const creditNormal = [
+            "LIABILITY",
+            "EQUITY",
+            "REVENUE",
+        ].includes(normalizedType);
+
+        if (!debitNormal && !creditNormal) {
+            throw new TypeError(
+                `Invalid account type: ${accountType}`,
+            );
+        }
+
+        const result = await this.knex("ledger_entries as le")
+            .join("ledger_journals as lj", function () {
+                this.on("lj.id", "=", "le.journal_id")
+                    .andOn("lj.tenant_id", "=", "le.tenant_id");
+            })
+            .where("le.tenant_id", tenantId)
+            .where("lj.tenant_id", tenantId)
+            .where("le.account_id", accountId)
+            .where("le.currency", currency.trim().toUpperCase())
+            .where("lj.currency", currency.trim().toUpperCase())
+            .where("lj.posted_at", "<=", effectiveDate)
+            .select(
+                this.knex.raw(`
+                    COALESCE(
+                        SUM(
+                            CASE
+                                WHEN le.entry_type = 'DEBIT'
+                                    THEN le.amount_minor
+                                WHEN le.entry_type = 'CREDIT'
+                                    THEN -le.amount_minor
+                                ELSE 0
+                            END
+                        ),
+                        0
+                    )::text AS net_balance
+                `),
+            )
+            .first();
+
+        if (
+            !result ||
+            typeof result.net_balance !== "string" ||
+            !/^-?\d+$/.test(result.net_balance)
+        ) {
+            throw new TypeError(
+                "The database returned an invalid ledger balance.",
+            );
+        }
+
+        const signedNet = BigInt(result.net_balance);
+
+        return {
+            postedBalance: (
+                debitNormal ? signedNet : -signedNet
+            ).toString(),
+        };
+    }
+
+    /**
      * Find an entry by ID, scoped to its tenant.
      * Returns null if it does not exist for that tenant.
      */
@@ -111,11 +215,13 @@ export class PostgresJournalEntryRepository {
 
     /**
      * Find an entry using its tenant-scoped idempotency key.
-     *
-     * Missing keys return null because there is nothing to look up.
-     * The tenant ID itself is mandatory.
+     * Missing keys return null.
      */
-    async findByIdempotencyKey(tenantId, idempotencyKey, options = {}) {
+    async findByIdempotencyKey(
+        tenantId,
+        idempotencyKey,
+        options = {},
+    ) {
         this.#requireTenantId(tenantId);
 
         if (
@@ -128,14 +234,15 @@ export class PostgresJournalEntryRepository {
         const forUpdate = Boolean(options.forUpdate);
 
         if (forUpdate) {
-            this.#requireTransaction(options, "Idempotency lookup with FOR UPDATE");
+            this.#requireTransaction(
+                options,
+                "Idempotency lookup with FOR UPDATE",
+            );
         }
 
         return this.#findEntryWithLines({
             tenantId,
-            where: {
-                idempotency_key: idempotencyKey,
-            },
+            where: { idempotency_key: idempotencyKey },
             options,
             forUpdate,
         });
@@ -159,9 +266,8 @@ export class PostgresJournalEntryRepository {
     }
 
     /**
-     * Update the status and merge a metadata patch.
-     *
-     * Returns the number of rows updated (normally 0 or 1).
+     * Update status and merge a metadata patch.
+     * Returns the number of rows updated.
      */
     async updateStatus(
         tenantId,
@@ -214,7 +320,10 @@ export class PostgresJournalEntryRepository {
         this.#requireTenantId(tenantId);
 
         if (forUpdate) {
-            this.#requireTransaction(options, "Journal entry lookup with FOR UPDATE");
+            this.#requireTransaction(
+                options,
+                "Journal entry lookup with FOR UPDATE",
+            );
         }
 
         const client = this.#getClient(options);
