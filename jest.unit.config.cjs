@@ -21,5 +21,14 @@ module.exports = {
     "src/conference-management/**/*.js",
     "src/Shared/Infrastructure/ai/**/*.js",
     "src/Shared/Infrastructure/messaging/outbox/PostgresOutboxRepository.js",
-],
+    ],
+
+    coverageThreshold: {
+        global: {
+            statements: 60,
+            branches: 60,
+            functions: 60,
+            lines: 60,
+        },
+    },
 };
