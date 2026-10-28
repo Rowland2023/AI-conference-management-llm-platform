@@ -108,25 +108,14 @@ export class BaseDomainEvent {
 
 
     toJSON() {
-
-        return {
-            eventId: this._eventId,
-
-            eventName: this._eventName,
-
-            aggregateId: this._aggregateId,
-
-            version: this._version,
-
-            occurredAt: this._occurredAt.toISOString(),
-
-            payload: {
-                ...this._payload
-            },
-
-            metadata: {
-                ...this._metadata
-            }
-        };
-    }
+    return {
+        eventId: this._eventId,
+        eventName: this._eventName,
+        aggregateId: this._aggregateId,
+        version: this._version,
+        occurredAt: this._occurredAt.toISOString(),
+        payload: { ...this._payload },
+        metadata: { ...this._metadata },
+    };
+}
 }
