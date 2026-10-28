@@ -30,24 +30,17 @@ class RefundDomainError extends Error {
   }
 }
 
-
 class InvalidRefundStateError extends RefundDomainError {
-
-  constructor(
-    message,
-    details = {}
-  ) {
-
-    super(
-      message,
-      "INVALID_REFUND_STATE",
-      details
-    );
-
+  constructor(message, details = {}) {
+    super(message, "INVALID_REFUND_STATE", details);
   }
-
 }
 
+class InvalidRefundReasonError extends RefundDomainError {
+  constructor(message, details = {}) {
+    super(message, "INVALID_REFUND_REASON", details);
+  }
+}
 
 
 class ExceededRefundLimitError extends RefundDomainError {
@@ -121,6 +114,7 @@ class CurrencyMismatchError extends RefundDomainError {
 export {
   RefundDomainError,
   InvalidRefundStateError,
+  InvalidRefundReasonError,
   ExceededRefundLimitError,
   CurrencyMismatchError,
 };
