@@ -1,6 +1,6 @@
-
 import { CreateAccountUseCase } from "../../../../src/conference-management/accounting-services/ledger/application/use-case/create-account.usecase.js";
 import { jest } from "@jest/globals";
+
 describe("CreateAccountUseCase", () => {
   let accountRepository;
   let outboxRepository;
@@ -40,6 +40,16 @@ describe("CreateAccountUseCase", () => {
       uow,
       logger,
     });
+  });
+
+  test("rejects an invalid command before starting a transaction", async () => {
+    await expect(useCase.execute(null)).rejects.toThrow(
+      "A valid account command is required.",
+    );
+
+    expect(uow.execute).not.toHaveBeenCalled();
+    expect(accountRepository.save).not.toHaveBeenCalled();
+    expect(outboxRepository.save).not.toHaveBeenCalled();
   });
 
   test("creates an account with a generated ID and persists it transactionally", async () => {
@@ -117,4 +127,3 @@ describe("CreateAccountUseCase", () => {
     expect(accountRepository.save).toHaveBeenCalledTimes(1);
   });
 });
-
