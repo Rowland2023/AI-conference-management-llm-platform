@@ -181,4 +181,21 @@ describe("PostJournalEntryUseCase", () => {
 
         expect(journalEntryRepository.create).not.toHaveBeenCalled();
     });
+
+    test("rejects a journal line when its account currency does not match", async () => {
+        accountRepository.findAndLockByIds.mockResolvedValue([
+            { id: "account-1", status: "ACTIVE", currency: "EUR" },
+            { id: "account-2", status: "ACTIVE", currency: "USD" },
+        ]);
+
+        await expect(
+            useCase.execute({
+                idempotencyKey: "request-currency-mismatch",
+                lines,
+            }),
+        ).rejects.toThrow("Account account-1 currency mismatch.");
+
+        expect(journalEntryRepository.create).not.toHaveBeenCalled();
+        expect(outboxRepository.add).not.toHaveBeenCalled();
+    });
 });
