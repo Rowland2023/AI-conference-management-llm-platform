@@ -71,6 +71,7 @@ export default class AccountAggregate extends AggregateRoot {
       }
     }
 
+    // Validate the reconstructed account state after loading its holds.
     this.assertInvariant();
   }
 
@@ -133,18 +134,21 @@ export default class AccountAggregate extends AggregateRoot {
       expiresAt,
     });
 
-    this._holds.set(idempotencyKey, hold);
+    // Validate the event before changing aggregate state.
+    const event = new AccountHeldEvent({
+      accountId: this.id,
+      holdId: hold.id,
+      idempotencyKey: hold.idempotencyKey,
+      amount: hold.amount,
+      currency: hold.currency,
+      expiresAt: hold.expiresAt,
+    });
+
+    this._holds.set(hold.idempotencyKey, hold);
     this._pendingBalance += holdAmount;
 
     this.assertInvariant();
-
-    this.addDomainEvent(
-      new AccountHeldEvent({
-        accountId: this.id,
-        holdId: hold.id,
-        amount: hold.amount,
-      }),
-    );
+    this.addDomainEvent(event);
 
     return {
       hold,
@@ -167,17 +171,22 @@ export default class AccountAggregate extends AggregateRoot {
       );
     }
 
-    if (hold.isActive()) {
+    // Release first so a failed release does not alter the balance.
+    const wasActive = hold.isActive();
+
+    hold.release();
+
+    if (wasActive) {
       this._pendingBalance -= hold.amount;
     }
 
-    hold.release();
     this.assertInvariant();
 
     this.addDomainEvent(
       new AccountReleasedEvent({
         accountId: this.id,
         holdId: hold.id,
+        releasedAmount: hold.amount,
       }),
     );
   }
@@ -191,6 +200,10 @@ export default class AccountAggregate extends AggregateRoot {
 
     if (this._postedBalance < 0n) {
       throw new Error("Posted balance cannot be negative.");
+    }
+
+    if (this._pendingBalance > this._postedBalance) {
+      throw new Error("Pending balance cannot exceed posted balance.");
     }
   }
 
