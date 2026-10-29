@@ -37,33 +37,36 @@ export default class JournalEntryMapper {
   }
 
   static #mapLineToDomain(line) {
-    return {
-      id: line.id,
-      accountId: line.account_id,
-      amountInMinorUnits: this.#toBigInt(line.amount),
-      direction: line.direction,
-      currency: line.currency,
-    };
-  }
+  return {
+    id: line.id,
+    accountId: line.account_id,
+    amount: this.#toBigInt(line.amount),
+    direction: line.direction,
+    currency: line.currency,
+  };
+}
 
   static toDomain(row, lineRows = []) {
-    if (!row) {
-      return null;
-    }
-
-    return new JournalEntryAggregate({
-      id: row.id,
-      tenantId: row.tenant_id,
-      idempotencyKey: row.idempotency_key,
-      correlationId: row.correlation_id,
-      description: row.description,
-      currency: row.currency,
-      status: row.status,
-      postedAt: row.posted_at ? new Date(row.posted_at) : null,
-      metadata: this.#parseMetadata(row.metadata),
-      lines: lineRows.map((line) => this.#mapLineToDomain(line)),
-    });
+  if (!row) {
+    return null;
   }
+
+  const entry = new JournalEntryAggregate({
+    id: row.id,
+    idempotencyKey: row.idempotency_key,
+    description: row.description,
+    currency: row.currency,
+    status: row.status,
+    postedAt: row.posted_at ? new Date(row.posted_at) : null,
+    metadata: this.#parseMetadata(row.metadata),
+  });
+
+  for (const line of lineRows) {
+    entry.addLine(this.#mapLineToDomain(line));
+  }
+
+  return entry;
+}
 
   static toPersistence(aggregate) {
     if (!aggregate) {
