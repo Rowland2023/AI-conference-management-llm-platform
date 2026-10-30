@@ -5,9 +5,9 @@ import { Entity } from "./Entity.js";
 export class AggregateRoot extends Entity {
   #domainEvents = [];
 
-  constructor(props = {}) {
-    super(props);
-  }
+  constructor(id, version = 0) {
+  super(id, version);
+}
 
   /**
    * Record a domain event.
