@@ -13,6 +13,6 @@ module.exports = {
       lines: 70,
     },
   },
-  testMatch: ['**/test/**/*.test.js'],
+  testMatch: ['**/test/unit/**/*.test.js'],
   verbose: true
 };
