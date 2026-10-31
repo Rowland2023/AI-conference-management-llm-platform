@@ -20,7 +20,6 @@ export class PostgresOutboxRepository {
 
         this.db = db;
         this.table = "outbox_events";
-
     }
 
     /**
@@ -29,6 +28,12 @@ export class PostgresOutboxRepository {
      * IMPORTANT:
      * Must execute inside the same transaction
      * as the aggregate persistence.
+     *
+     * Supports both legacy BaseDomainEvent getters
+     * and shared DomainEvent metadata.
+     *
+     * @param {Object|Object[]} events
+     * @param {import("knex").Knex.Transaction} trx
      */
     async save(events, trx = this.db) {
 
@@ -41,9 +46,9 @@ export class PostgresOutboxRepository {
             const metadata = event.metadata ?? {};
 
             return {
-
-                // Read identity and event details from BaseDomainEvent getters.
-                id: event.eventId,
+                id:
+                    event.eventId ??
+                    metadata.eventId,
 
                 aggregate_type:
                     event.aggregateType ??
@@ -51,10 +56,12 @@ export class PostgresOutboxRepository {
                     event.constructor.name,
 
                 aggregate_id:
-                    event.aggregateId,
+                    event.aggregateId ??
+                    metadata.aggregateId,
 
                 event_type:
-                    event.eventName,
+                    event.eventName ??
+                    metadata.eventName,
 
                 payload:
                     JSON.stringify(event.payload),
@@ -71,18 +78,21 @@ export class PostgresOutboxRepository {
                     metadata.correlationId ?? null,
 
                 created_at:
-                    event.occurredAt ?? trx.fn.now(),
-
+                    event.occurredAt ??
+                    metadata.occurredAt ??
+                    trx.fn.now(),
             };
-
         });
 
         await trx(this.table).insert(rows);
-
     }
 
     /**
      * Fetch pending events and lock them.
+     *
+     * @param {number} batchSize
+     * @param {number} maxRetries
+     * @returns {Promise<Object[]>}
      */
     async fetchAndLockPending(
         batchSize = 100,
@@ -104,83 +114,67 @@ export class PostgresOutboxRepository {
                 return [];
             }
 
+            const ids = rows.map((row) => row.id);
+
             await trx(this.table)
-                .whereIn(
-                    "id",
-                    rows.map((row) => row.id),
-                )
+                .whereIn("id", ids)
                 .update({
                     status: "PROCESSING",
                 });
 
             return rows;
-
         });
-
     }
 
     /**
-     * Mark event successfully dispatched.
+     * Mark an event as successfully dispatched.
+     *
+     * @param {string} id
      */
     async markAsDispatched(id) {
 
         await this.db(this.table)
             .where({ id })
             .update({
-
                 status: "PROCESSED",
-
                 processed_at: this.db.fn.now(),
-
             });
-
     }
 
     /**
-     * Increment retry counter.
+     * Increment retry count and schedule another attempt.
+     *
+     * @param {string} id
+     * @param {string} errorMessage
      */
-    async incrementRetry(
-        id,
-        errorMessage,
-    ) {
+    async incrementRetry(id, errorMessage) {
 
         await this.db(this.table)
             .where({ id })
             .increment("retry_count", 1)
             .update({
-
                 status: "PENDING",
-
                 last_error: errorMessage,
-
                 next_retry_at: this.db.raw(
                     "NOW() + INTERVAL '30 seconds'"
                 ),
-
             });
-
     }
 
     /**
-     * Mark event permanently failed.
+     * Mark an event as permanently failed.
+     *
+     * @param {string} id
+     * @param {string} errorMessage
      */
-    async markAsFailed(
-        id,
-        errorMessage,
-    ) {
+    async markAsFailed(id, errorMessage) {
 
         await this.db(this.table)
             .where({ id })
             .update({
-
                 status: "FAILED",
-
                 last_error: errorMessage,
-
                 processed_at: this.db.fn.now(),
-
             });
-
     }
-
 }

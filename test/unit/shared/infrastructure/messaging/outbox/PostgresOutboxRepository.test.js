@@ -1,5 +1,6 @@
+
 import { PostgresOutboxRepository }
-    from "../../../../../../src/Shared/Infrastructure/messaging/outbox/PostgresOutboxRepository.js";
+    from "../../../../../../src/shared/Infrastructure/messaging/outbox/PostgresOutboxRepository.js";
 
 import { BaseDomainEvent }
     from "../../../../../../src/conference-management/accounting-services/ledger/domain/events/base-domain.event.js";
@@ -97,6 +98,58 @@ describe("PostgresOutboxRepository", () => {
                 max_retries: 5,
                 next_retry_at: "DB_NOW",
                 correlation_id: "22222222-2222-4222-8222-222222222222",
+                created_at: occurredAt,
+            },
+        ]);
+    });
+
+    test("persists event fields from shared DomainEvent metadata", async () => {
+        const occurredAt = "2026-10-25T10:30:00.000Z";
+
+        class SharedDomainEventFixture {
+            constructor() {
+                this.metadata = Object.freeze({
+                    eventId: "44444444-4444-4444-8444-444444444444",
+                    eventName: "ticket.created",
+                    aggregateId: "ticket-123",
+                    eventVersion: 1,
+                    occurredAt,
+                    correlationId: "55555555-5555-4555-8555-555555555555",
+                    causationId: null,
+                });
+
+                this.payload = Object.freeze({
+                    ticketId: "ticket-123",
+                    conferenceId: "conference-123",
+                    type: "standard",
+                    capacity: 100,
+                    price: "250.00",
+                    currency: "NGN",
+                });
+            }
+        }
+
+        const event = new SharedDomainEventFixture();
+        const insert = jest.fn().mockResolvedValue(undefined);
+
+        trx.mockReturnValue({ insert });
+
+        await repository.save(event, trx);
+
+        expect(trx).toHaveBeenCalledWith("outbox_events");
+        expect(insert).toHaveBeenCalledTimes(1);
+        expect(insert).toHaveBeenCalledWith([
+            {
+                id: "44444444-4444-4444-8444-444444444444",
+                aggregate_type: "SharedDomainEventFixture",
+                aggregate_id: "ticket-123",
+                event_type: "ticket.created",
+                payload: JSON.stringify(event.payload),
+                status: "PENDING",
+                retry_count: 0,
+                max_retries: 5,
+                next_retry_at: "DB_NOW",
+                correlation_id: "55555555-5555-4555-8555-555555555555",
                 created_at: occurredAt,
             },
         ]);
